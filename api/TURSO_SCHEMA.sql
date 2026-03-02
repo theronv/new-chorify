@@ -91,7 +91,30 @@ CREATE TABLE IF NOT EXISTS rewards (
   created_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
--- ── 8. Refresh Tokens ─────────────────────────────────────────────────────────
+-- ── 8. Rooms ──────────────────────────────────────────────────────────────────
+-- Optional rooms let households organise tasks by location.
+-- Default rooms are seeded when a household is first created.
+CREATE TABLE IF NOT EXISTS rooms (
+  id           TEXT    PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  household_id TEXT    NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  name         TEXT    NOT NULL,
+  emoji        TEXT    NOT NULL DEFAULT '🏠',
+  sort_order   INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- ── 9. Categories ────────────────────────────────────────────────────────────
+-- Dynamic per-household task categories. Defaults seeded on household creation.
+CREATE TABLE IF NOT EXISTS categories (
+  id           TEXT    PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  household_id TEXT    NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  name         TEXT    NOT NULL,
+  emoji        TEXT    NOT NULL DEFAULT '📦',
+  sort_order   INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- ── 10. Refresh Tokens ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id         TEXT    PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   user_id    TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -104,6 +127,12 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 -- ═══════════════════════════════════════════════════════════════════════════
 -- INDEXES
 -- ═══════════════════════════════════════════════════════════════════════════
+-- Migration: add room_id to existing tasks (safe to run on existing DBs)
+ALTER TABLE tasks ADD COLUMN room_id TEXT REFERENCES rooms(id) ON DELETE SET NULL;
+
+-- Migration: add categories table (safe to run on existing DBs)
+CREATE INDEX IF NOT EXISTS idx_categories_household ON categories(household_id);
+CREATE INDEX IF NOT EXISTS idx_rooms_household      ON rooms(household_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_household      ON tasks(household_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_next_due       ON tasks(next_due);
 CREATE INDEX IF NOT EXISTS idx_completions_household ON completions(household_id);

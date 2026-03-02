@@ -15,6 +15,7 @@ import { useAuthStore, useHouseholdStore } from '@/lib/store'
 import { Button } from '@/components/Button'
 import { Colors } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
+import { useLayout } from '@/constants/layout'
 import { PACKS } from '@/constants/packs'
 import type { Pack } from '@/constants/packs'
 
@@ -30,6 +31,7 @@ function newTasksInPack(pack: Pack, existingTitles: Set<string>): number {
 export default function PacksSettingsScreen() {
   const insets      = useSafeAreaInsets()
   const router      = useRouter()
+  const { contentPadding, headerPadding, contentMaxWidth } = useLayout()
   const householdId = useAuthStore((s) => s.householdId)
   const tasks       = useHouseholdStore((s) => s.tasks)
   const addTask     = useHouseholdStore((s) => s.addTask)
@@ -80,7 +82,7 @@ export default function PacksSettingsScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
           <Text style={styles.backText}>‹ Back</Text>
         </TouchableOpacity>
@@ -92,7 +94,17 @@ export default function PacksSettingsScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: insets.bottom + 32,
+            paddingLeft:   contentPadding + insets.left,
+            paddingRight:  contentPadding + insets.right,
+            maxWidth:      contentMaxWidth,
+            alignSelf:     contentMaxWidth ? 'center' : undefined,
+            width:         contentMaxWidth ? '100%' : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {PACKS.map((pack) => {

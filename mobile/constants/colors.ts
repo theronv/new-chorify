@@ -37,7 +37,7 @@ export const Colors = {
   tabInactive:    '#9CA3AF',
   tabBackground:  '#FFFFFF',
 
-  // Category badge colors — must match API CATEGORIES enum
+  // Category badge colors (legacy static map — kept for reference)
   category: {
     home:    { bg: '#EEF0FE', text: '#5B6EF5' },
     pet:     { bg: '#FFF7ED', text: '#C2410C' },
@@ -49,3 +49,25 @@ export const Colors = {
 } as const
 
 export type ColorKey = keyof typeof Colors
+
+// ── Dynamic category color palette ────────────────────────────────────────────
+// Assign colors by sort_order % palette length.
+// Indices 0–5 intentionally match the legacy Colors.category entries above.
+export const CATEGORY_COLORS: { bg: string; text: string }[] = [
+  { bg: '#EEF0FE', text: '#5B6EF5' }, // 0: indigo  (home)
+  { bg: '#FFF7ED', text: '#C2410C' }, // 1: orange  (pet)
+  { bg: '#E8F8ED', text: '#15803D' }, // 2: green   (outdoor)
+  { bg: '#FCE7F3', text: '#9D174D' }, // 3: pink    (health)
+  { bg: '#FEF3DC', text: '#B45309' }, // 4: amber   (family)
+  { bg: '#F0F9FF', text: '#0369A1' }, // 5: sky     (vehicle)
+  { bg: '#F3E8FF', text: '#7E22CE' }, // 6: purple
+  { bg: '#FFF1F2', text: '#BE123C' }, // 7: rose
+]
+
+/**
+ * Returns bg + text colors for a category.
+ * Uses the category's sort_order modulo the palette length for stable assignment.
+ */
+export function getCategoryColor(sortOrder: number): { bg: string; text: string } {
+  return CATEGORY_COLORS[Math.abs(sortOrder) % CATEGORY_COLORS.length]
+}

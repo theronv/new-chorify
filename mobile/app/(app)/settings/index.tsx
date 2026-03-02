@@ -18,10 +18,12 @@ import { useAuthStore, useHouseholdStore } from '@/lib/store'
 import { MemberAvatar } from '@/components/MemberAvatar'
 import { Colors } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
+import { useLayout } from '@/constants/layout'
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const { contentPadding, headerPadding, contentMaxWidth } = useLayout()
 
   const memberId    = useAuthStore((s) => s.memberId)
   const logout      = useAuthStore((s) => s.logout)
@@ -106,13 +108,23 @@ export default function SettingsScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <Text style={styles.screenTitle}>Settings</Text>
       </View>
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: insets.bottom + 24,
+            paddingLeft:   contentPadding + insets.left,
+            paddingRight:  contentPadding + insets.right,
+            maxWidth:      contentMaxWidth,
+            alignSelf:     contentMaxWidth ? 'center' : undefined,
+            width:         contentMaxWidth ? '100%' : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Household ──────────────────────────────────────────────── */}
@@ -173,10 +185,43 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.navRow}
+            onPress={() => router.push('/(app)/settings/rooms' as never)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.navRowText}>Manage Rooms</Text>
+            <Text style={styles.navRowChevron}>›</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.navRow}
+            onPress={() => router.push('/(app)/settings/categories' as never)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.navRowText}>Manage Categories</Text>
+            <Text style={styles.navRowChevron}>›</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.navRow}
             onPress={() => router.push('/(app)/settings/packs' as never)}
             activeOpacity={0.7}
           >
             <Text style={styles.navRowText}>Browse Packs</Text>
+            <Text style={styles.navRowChevron}>›</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.navRow}
+            onPress={() => router.push('/(app)/settings/csv' as never)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.navRowText}>Import / Export Tasks</Text>
             <Text style={styles.navRowChevron}>›</Text>
           </TouchableOpacity>
         </View>

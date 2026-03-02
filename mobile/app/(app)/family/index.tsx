@@ -21,6 +21,7 @@ import { MemberAvatar } from '@/components/MemberAvatar'
 import { Toast } from '@/components/Toast'
 import { Colors } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
+import { useLayout } from '@/constants/layout'
 import type { Completion } from '@/types'
 
 // ── Static data ───────────────────────────────────────────────────────────────
@@ -46,6 +47,7 @@ function weeklyPoints(memberId: string, completions: Completion[]): number {
 
 export default function FamilyScreen() {
   const insets = useSafeAreaInsets()
+  const { isLandscape, contentPadding, headerPadding, contentMaxWidth, sheetMaxWidth } = useLayout()
 
   const householdId = useAuthStore((s) => s.householdId)
   const members     = useHouseholdStore((s) => s.members)
@@ -106,13 +108,23 @@ export default function FamilyScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <Text style={styles.screenTitle}>Family</Text>
       </View>
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 96 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: insets.bottom + 96,
+            paddingLeft:   contentPadding + insets.left,
+            paddingRight:  contentPadding + insets.right,
+            maxWidth:      contentMaxWidth,
+            alignSelf:     contentMaxWidth ? 'center' : undefined,
+            width:         contentMaxWidth ? '100%' : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -175,7 +187,7 @@ export default function FamilyScreen() {
 
       {/* FAB */}
       <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 72 }]}
+        style={[styles.fab, { bottom: insets.bottom + 72, right: insets.right + 20 }]}
         onPress={() => setSheetVisible(true)}
         activeOpacity={0.85}
       >
@@ -190,13 +202,13 @@ export default function FamilyScreen() {
         onRequestClose={closeSheet}
         statusBarTranslucent
       >
-        <View style={styles.overlay}>
+        <View style={[styles.overlay, sheetMaxWidth && styles.overlayTablet]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} />
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.kavContainer}
+            style={[styles.kavContainer, sheetMaxWidth && { maxWidth: sheetMaxWidth }]}
           >
-            <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+            <View style={[styles.sheet, { paddingBottom: insets.bottom + 16, ...(isLandscape ? { maxHeight: '95%' } : {}) }]}>
               <View style={styles.handle} />
               <Text style={styles.sheetTitle}>Add Family Member</Text>
 
@@ -398,8 +410,9 @@ const styles = StyleSheet.create({
   },
 
   // Sheet
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
-  kavContainer: { width: '100%' },
+  overlay:       { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  overlayTablet: { alignItems: 'center' },
+  kavContainer:  { width: '100%' },
   sheet: {
     backgroundColor:      Colors.surface,
     borderTopLeftRadius:  28,

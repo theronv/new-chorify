@@ -31,7 +31,22 @@ async function getMemberId(userId: string, householdId: string): Promise<string 
   return (result.rows[0]?.id as string | null) ?? null
 }
 
-const CATEGORIES = ['home', 'pet', 'outdoor', 'health', 'family', 'vehicle'] as const
+const DEFAULT_ROOMS: { name: string; emoji: string; sort_order: number }[] = [
+  { name: 'Living Room', emoji: '🛋️', sort_order: 0 },
+  { name: 'Kitchen',     emoji: '🍳', sort_order: 1 },
+  { name: 'Bedroom',     emoji: '🛏️', sort_order: 2 },
+  { name: 'Bathroom',    emoji: '🚿', sort_order: 3 },
+  { name: 'Outdoor',     emoji: '🌿', sort_order: 4 },
+]
+
+const DEFAULT_CATEGORIES: { name: string; emoji: string; sort_order: number }[] = [
+  { name: 'home',    emoji: '🏠', sort_order: 0 },
+  { name: 'pet',     emoji: '🐾', sort_order: 1 },
+  { name: 'outdoor', emoji: '🌿', sort_order: 2 },
+  { name: 'health',  emoji: '❤️', sort_order: 3 },
+  { name: 'family',  emoji: '👨‍👩‍👧', sort_order: 4 },
+  { name: 'vehicle', emoji: '🚗', sort_order: 5 },
+]
 const RECURRENCES = [
   'daily', 'weekly', 'biweekly', 'monthly',
   'quarterly', 'biannual', 'annual', 'once',
@@ -75,6 +90,16 @@ households.post('/', requireAuth, zValidator('json', CreateHouseholdSchema), asy
     inviteCode = generateInviteCode()
   }
 
+  const roomInserts = DEFAULT_ROOMS.map((r) => ({
+    sql: 'INSERT INTO rooms (id, household_id, name, emoji, sort_order) VALUES (?, ?, ?, ?, ?)',
+    args: [generateId(), householdId, r.name, r.emoji, r.sort_order],
+  }))
+
+  const categoryInserts = DEFAULT_CATEGORIES.map((cat) => ({
+    sql: 'INSERT INTO categories (id, household_id, name, emoji, sort_order) VALUES (?, ?, ?, ?, ?)',
+    args: [generateId(), householdId, cat.name, cat.emoji, cat.sort_order],
+  }))
+
   await db.batch([
     {
       sql: 'INSERT INTO households (id, name, invite_code, owner_id) VALUES (?, ?, ?, ?)',
@@ -88,6 +113,8 @@ households.post('/', requireAuth, zValidator('json', CreateHouseholdSchema), asy
       sql: 'UPDATE profiles SET household_id = ?, display_name = ?, emoji = ? WHERE user_id = ?',
       args: [householdId, displayName, emoji, userId],
     },
+    ...roomInserts,
+    ...categoryInserts,
   ])
 
   // Issue a new token that now carries householdId + memberId
@@ -227,6 +254,130 @@ households.post('/:id/members', requireAuth, zValidator('json', AddChildSchema),
   )
 })
 
+// ── GET /api/households/:id/rooms ─────────────────────────────────────────────
+
+households.get('/:id/rooms', requireAuth, async (c) => {
+  const householdId = c.req.param('id')
+  const { sub: userId } = c.get('token')
+
+  if (!(await getMemberId(userId, householdId))) {
+    return c.json({ error: 'Not a member of this household' }, 403)
+  }
+
+  const result = await getDb().execute({
+    sql: 'SELECT * FROM rooms WHERE household_id = ? ORDER BY sort_order ASC, created_at ASC',
+    args: [householdId],
+  })
+  return c.json({ rooms: result.rows })
+})
+
+// ── POST /api/households/:id/rooms ────────────────────────────────────────────
+
+const CreateRoomSchema = z.object({
+  name:  z.string().min(1).max(100).trim(),
+  emoji: z.string().min(1).default('🏠'),
+})
+
+households.post('/:id/rooms', requireAuth, zValidator('json', CreateRoomSchema), async (c) => {
+  const householdId = c.req.param('id')
+  const { sub: userId } = c.get('token')
+  const { name, emoji } = c.req.valid('json')
+
+  if (!(await getMemberId(userId, householdId))) {
+    return c.json({ error: 'Not a member of this household' }, 403)
+  }
+
+  const roomId = generateId()
+  await getDb().execute({
+    sql: 'INSERT INTO rooms (id, household_id, name, emoji) VALUES (?, ?, ?, ?)',
+    args: [roomId, householdId, name, emoji],
+  })
+
+  return c.json(
+    { room: { id: roomId, household_id: householdId, name, emoji, sort_order: 0, created_at: new Date().toISOString() } },
+    201,
+  )
+})
+
+// ── GET /api/households/:id/categories ───────────────────────────────────────
+
+households.get('/:id/categories', requireAuth, async (c) => {
+  const householdId = c.req.param('id')
+  const { sub: userId } = c.get('token')
+  const db = getDb()
+
+  if (!(await getMemberId(userId, householdId))) {
+    return c.json({ error: 'Not a member of this household' }, 403)
+  }
+
+  let result = await db.execute({
+    sql: 'SELECT * FROM categories WHERE household_id = ? ORDER BY sort_order ASC, created_at ASC',
+    args: [householdId],
+  })
+
+  // Lazy-seed defaults for households created before categories were introduced
+  if (result.rows.length === 0) {
+    const inserts = DEFAULT_CATEGORIES.map((cat) => ({
+      sql: 'INSERT INTO categories (id, household_id, name, emoji, sort_order) VALUES (?, ?, ?, ?, ?)',
+      args: [generateId(), householdId, cat.name, cat.emoji, cat.sort_order],
+    }))
+    await db.batch(inserts)
+    result = await db.execute({
+      sql: 'SELECT * FROM categories WHERE household_id = ? ORDER BY sort_order ASC, created_at ASC',
+      args: [householdId],
+    })
+  }
+
+  return c.json({ categories: result.rows })
+})
+
+// ── POST /api/households/:id/categories ──────────────────────────────────────
+
+const CreateCategorySchema = z.object({
+  name:  z.string().min(1).max(100).trim(),
+  emoji: z.string().min(1).default('📦'),
+})
+
+households.post('/:id/categories', requireAuth, zValidator('json', CreateCategorySchema), async (c) => {
+  const householdId = c.req.param('id')
+  const { sub: userId } = c.get('token')
+  const { name, emoji } = c.req.valid('json')
+  const db = getDb()
+
+  if (!(await getMemberId(userId, householdId))) {
+    return c.json({ error: 'Not a member of this household' }, 403)
+  }
+
+  // Determine next sort_order
+  const maxResult = await db.execute({
+    sql: 'SELECT MAX(sort_order) as max_order FROM categories WHERE household_id = ?',
+    args: [householdId],
+  })
+  const maxOrder = (maxResult.rows[0]?.max_order as number | null) ?? -1
+
+  const categoryId = generateId()
+  const sortOrder = maxOrder + 1
+
+  await db.execute({
+    sql: 'INSERT INTO categories (id, household_id, name, emoji, sort_order) VALUES (?, ?, ?, ?, ?)',
+    args: [categoryId, householdId, name, emoji, sortOrder],
+  })
+
+  return c.json(
+    {
+      category: {
+        id:           categoryId,
+        household_id: householdId,
+        name,
+        emoji,
+        sort_order:   sortOrder,
+        created_at:   new Date().toISOString(),
+      },
+    },
+    201,
+  )
+})
+
 // ── GET /api/households/:id/tasks ─────────────────────────────────────────────
 
 households.get('/:id/tasks', requireAuth, async (c) => {
@@ -247,12 +398,13 @@ households.get('/:id/tasks', requireAuth, async (c) => {
 // ── POST /api/households/:id/tasks ────────────────────────────────────────────
 
 const CreateTaskSchema = z.object({
-  title: z.string().min(1).max(100).trim(),
-  category: z.enum(CATEGORIES).default('home'),
+  title:      z.string().min(1).max(100).trim(),
+  category:   z.string().min(1).max(100).default('home'),
   recurrence: z.enum(RECURRENCES).default('weekly'),
-  points: z.number().int().min(1).max(100).default(10),
+  points:     z.number().int().min(1).max(100).default(10),
   assignedTo: z.string().nullable().optional(),
-  notes: z.string().max(500).optional(),
+  roomId:     z.string().nullable().optional(),
+  notes:      z.string().max(500).optional(),
 })
 
 households.post('/:id/tasks', requireAuth, zValidator('json', CreateTaskSchema), async (c) => {
@@ -268,23 +420,24 @@ households.post('/:id/tasks', requireAuth, zValidator('json', CreateTaskSchema),
   const nextDue = todayISO()
 
   await getDb().execute({
-    sql: `INSERT INTO tasks (id, household_id, title, category, recurrence, points, assigned_to, next_due, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [taskId, householdId, body.title, body.category, body.recurrence, body.points, body.assignedTo ?? null, nextDue, body.notes ?? null],
+    sql: `INSERT INTO tasks (id, household_id, title, category, recurrence, points, assigned_to, room_id, next_due, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [taskId, householdId, body.title, body.category, body.recurrence, body.points, body.assignedTo ?? null, body.roomId ?? null, nextDue, body.notes ?? null],
   })
 
   return c.json(
     {
       task: {
-        id: taskId,
+        id:           taskId,
         household_id: householdId,
-        title: body.title,
-        category: body.category,
-        recurrence: body.recurrence,
-        points: body.points,
-        assigned_to: body.assignedTo ?? null,
-        next_due: nextDue,
-        notes: body.notes ?? null,
+        title:        body.title,
+        category:     body.category,
+        recurrence:   body.recurrence,
+        points:       body.points,
+        assigned_to:  body.assignedTo ?? null,
+        room_id:      body.roomId ?? null,
+        next_due:     nextDue,
+        notes:        body.notes ?? null,
       },
     },
     201,

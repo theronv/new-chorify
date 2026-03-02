@@ -69,13 +69,26 @@ export type Recurrence =
   | 'annual'
   | 'once'
 
-export type Category =
-  | 'home'
-  | 'pet'
-  | 'outdoor'
-  | 'health'
-  | 'family'
-  | 'vehicle'
+/** Legacy type alias — category is now a free-form string backed by HouseholdCategory */
+export type Category = string
+
+export interface HouseholdCategory {
+  id:           string
+  household_id: string
+  name:         string
+  emoji:        string
+  sort_order:   number
+  created_at:   string
+}
+
+export interface Room {
+  id:           string
+  household_id: string
+  name:         string
+  emoji:        string
+  sort_order:   number
+  created_at:   string
+}
 
 export interface Task {
   id:             string
@@ -85,6 +98,7 @@ export interface Task {
   recurrence:     Recurrence
   points:         number
   assigned_to:    string | null  // member id
+  room_id:        string | null  // room id
   next_due:       string | null  // YYYY-MM-DD
   last_completed: string | null  // YYYY-MM-DD
   notes:          string | null
@@ -131,8 +145,40 @@ export interface CreateTaskRequest {
   recurrence:  Recurrence
   points:      number
   assignedTo?: string
+  roomId?:     string
   nextDue?:    string
   notes?:      string
+}
+
+export interface UpdateTaskRequest {
+  title?:      string
+  category?:   Category
+  recurrence?: Recurrence
+  points?:     number
+  assignedTo?: string | null
+  roomId?:     string | null
+  nextDue?:    string | null  // YYYY-MM-DD
+  notes?:      string | null
+}
+
+export interface CreateRoomRequest {
+  name:   string
+  emoji?: string
+}
+
+export interface UpdateRoomRequest {
+  name?:  string
+  emoji?: string
+}
+
+export interface CreateCategoryRequest {
+  name:   string
+  emoji?: string
+}
+
+export interface UpdateCategoryRequest {
+  name?:  string
+  emoji?: string
 }
 
 export interface CreateMemberRequest {

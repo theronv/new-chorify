@@ -19,6 +19,59 @@ async function getMemberId(userId: string, householdId: string): Promise<string 
   return (result.rows[0]?.id as string | null) ?? null
 }
 
+// ── PATCH /api/tasks/:id ──────────────────────────────────────────────────────
+
+const RECURRENCES = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'biannual', 'annual', 'once'] as const
+
+const UpdateTaskSchema = z.object({
+  title:      z.string().min(1).max(100).trim().optional(),
+  category:   z.string().min(1).max(100).optional(),
+  recurrence: z.enum(RECURRENCES).optional(),
+  points:     z.number().int().min(1).max(100).optional(),
+  assignedTo: z.string().nullable().optional(),
+  roomId:     z.string().nullable().optional(),
+  nextDue:    z.string().nullable().optional(), // YYYY-MM-DD or null
+  notes:      z.string().max(500).nullable().optional(),
+})
+
+tasks.patch('/:id', requireAuth, zValidator('json', UpdateTaskSchema), async (c) => {
+  const taskId = c.req.param('id')
+  const { sub: userId } = c.get('token')
+  const body = c.req.valid('json')
+  const db = getDb()
+
+  const taskResult = await db.execute({
+    sql: 'SELECT household_id FROM tasks WHERE id = ?',
+    args: [taskId],
+  })
+  const task = taskResult.rows[0]
+  if (!task) return c.json({ error: 'Task not found' }, 404)
+
+  if (!(await getMemberId(userId, task.household_id as string))) {
+    return c.json({ error: 'Not authorized' }, 403)
+  }
+
+  // Build SET clause — only include fields that were explicitly sent
+  const sets: string[] = []
+  const args: (string | number | null)[] = []
+
+  if (body.title      !== undefined) { sets.push('title = ?');       args.push(body.title) }
+  if (body.category   !== undefined) { sets.push('category = ?');    args.push(body.category) }
+  if (body.recurrence !== undefined) { sets.push('recurrence = ?');  args.push(body.recurrence) }
+  if (body.points     !== undefined) { sets.push('points = ?');      args.push(body.points) }
+  if ('assignedTo' in body)          { sets.push('assigned_to = ?'); args.push(body.assignedTo ?? null) }
+  if ('roomId'     in body)          { sets.push('room_id = ?');     args.push(body.roomId ?? null) }
+  if ('nextDue'    in body)          { sets.push('next_due = ?');    args.push(body.nextDue ?? null) }
+  if ('notes'      in body)          { sets.push('notes = ?');       args.push(body.notes ?? null) }
+
+  if (!sets.length) return c.json({ error: 'Nothing to update' }, 400)
+  args.push(taskId)
+
+  await db.execute({ sql: `UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`, args })
+  const updated = await db.execute({ sql: 'SELECT * FROM tasks WHERE id = ?', args: [taskId] })
+  return c.json({ task: updated.rows[0] })
+})
+
 // ── DELETE /api/tasks/:id ─────────────────────────────────────────────────────
 
 tasks.delete('/:id', requireAuth, async (c) => {
@@ -56,7 +109,7 @@ tasks.post('/:id/complete', requireAuth, zValidator('json', CompleteSchema), asy
   const today = todayISO()
 
   const taskResult = await db.execute({
-    sql: 'SELECT id, household_id, points, recurrence FROM tasks WHERE id = ?',
+    sql: 'SELECT id, household_id, points, recurrence, next_due FROM tasks WHERE id = ?',
     args: [taskId],
   })
   const task = taskResult.rows[0]
@@ -84,7 +137,7 @@ tasks.post('/:id/complete', requireAuth, zValidator('json', CompleteSchema), asy
 
   const completionId = generateId()
   const points = task.points as number
-  const nextDue = calcNextDue(task.recurrence as string)
+  const nextDue = calcNextDue(task.recurrence as string, task.next_due as string | null)
   const newPointsTotal = (member.points_total as number) + points
 
   // Batch the three writes atomically

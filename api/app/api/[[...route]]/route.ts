@@ -16,6 +16,8 @@ import authRoutes from '../../../lib/routes/auth'
 import householdRoutes from '../../../lib/routes/households'
 import memberRoutes from '../../../lib/routes/members'
 import taskRoutes from '../../../lib/routes/tasks'
+import roomRoutes from '../../../lib/routes/rooms'
+import categoryRoutes from '../../../lib/routes/categories'
 import cronRoutes from '../../../lib/routes/cron'
 
 export const runtime = 'edge'
@@ -49,12 +51,15 @@ app.get('/health', c => c.json({ ok: true, ts: new Date().toISOString() }))
 //   /api/members/:id                   — update member (push token, name, emoji)
 //   /api/tasks/:id                     — delete task
 //   /api/tasks/:id/complete            — mark task complete
+//   /api/categories/:id                — rename/delete category
 //   /api/cron/notifications            — daily push notification job
 
 app.route('/auth', authRoutes)
 app.route('/households', householdRoutes)
 app.route('/members', memberRoutes)
 app.route('/tasks', taskRoutes)
+app.route('/rooms', roomRoutes)
+app.route('/categories', categoryRoutes)
 app.route('/cron', cronRoutes)
 
 // ── Error handlers ────────────────────────────────────────────────────────────

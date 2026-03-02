@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as SecureStore from 'expo-secure-store'
 import { useAuthStore, useHouseholdStore } from '@/lib/store'
 import { members as membersApi } from '@/lib/api'
 import {
@@ -9,6 +10,9 @@ import {
 } from '@/lib/notifications'
 import { Colors } from '@/constants/colors'
 import { Font } from '@/constants/fonts'
+import { useLayout } from '@/constants/layout'
+
+const PUSH_TOKEN_CACHE_KEY = 'chorify.push_token'
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -22,15 +26,15 @@ export default function AppLayout() {
   const householdId  = useAuthStore((s) => s.householdId)
   const memberId     = useAuthStore((s) => s.memberId)
   const load         = useHouseholdStore((s) => s.load)
-  const members      = useHouseholdStore((s) => s.members)
   const updateMember = useHouseholdStore((s) => s.updateMember)
+  const { isTablet } = useLayout()
 
   // Load household data on mount
   useEffect(() => {
     if (householdId) load(householdId)
   }, [householdId])
 
-  // Register push token + background fetch once member data is available
+  // Register push token + background fetch once authenticated
   useEffect(() => {
     if (!memberId) return
 
@@ -38,11 +42,14 @@ export default function AppLayout() {
       const token = await registerForPushNotificationsAsync()
 
       if (token && memberId) {
-        // Only PATCH the server if the token has changed
-        const me = members.find((m) => m.id === memberId)
-        if (token !== me?.push_token) {
+        // Compare against the last token we successfully saved to the server.
+        // We use SecureStore rather than the members array because the members
+        // array hasn't loaded yet when this effect first fires.
+        const cached = await SecureStore.getItemAsync(PUSH_TOKEN_CACHE_KEY)
+        if (token !== cached) {
           try {
             await membersApi.update(memberId, { pushToken: token })
+            await SecureStore.setItemAsync(PUSH_TOKEN_CACHE_KEY, token)
             updateMember(memberId, { push_token: token })
             console.log('[Push] Token updated on server')
           } catch (e) {
@@ -72,7 +79,7 @@ export default function AppLayout() {
         },
         tabBarLabelStyle: {
           fontFamily: Font.medium,
-          fontSize: 11,
+          fontSize: isTablet ? 13 : 11,
           marginBottom: 2,
         },
       }}

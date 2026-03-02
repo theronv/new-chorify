@@ -6,25 +6,46 @@ import * as SecureStore from 'expo-secure-store'
 import type {
   AuthTokens,
   Completion,
+  CreateCategoryRequest,
   CreateHouseholdRequest,
   CreateMemberRequest,
   CreateRewardRequest,
+  CreateRoomRequest,
   CreateTaskRequest,
   Household,
+  HouseholdCategory,
   JoinHouseholdRequest,
   LoginRequest,
   LoginResponse,
   Member,
   Reward,
+  Room,
   SignupRequest,
   SignupResponse,
   Task,
   TaskCompleteResponse,
+  UpdateCategoryRequest,
+  UpdateRoomRequest,
+  UpdateTaskRequest,
 } from '@/types'
 
 // ── Base URL ─────────────────────────────────────────────────────────────────
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000'
-console.log('API_URL:', BASE_URL)
+// Set EXPO_PUBLIC_API_URL in mobile/.env.local for development.
+// iOS Simulator cannot reach the host machine via `localhost` — use the
+// machine's LAN IP instead (e.g. http://192.168.1.X:3000).
+// Run: ipconfig getifaddr en0   to find your IP.
+const BASE_URL = (() => {
+  const url = process.env.EXPO_PUBLIC_API_URL
+  if (__DEV__ && !url) {
+    console.warn(
+      '[api] EXPO_PUBLIC_API_URL is not set.\n' +
+      'Copy mobile/.env.example → mobile/.env.local and fill in your machine\'s LAN IP.\n' +
+      'iOS Simulator cannot use localhost — it resolves to the simulator, not the host.',
+    )
+  }
+  return url ?? 'http://localhost:3000'
+})()
+console.log('[api] BASE_URL:', BASE_URL)
 
 // ── Secure storage keys ───────────────────────────────────────────────────────
 const ACCESS_KEY  = 'keptt.access_token'
@@ -210,6 +231,46 @@ export const households = {
   createReward(id: string, body: CreateRewardRequest): Promise<{ reward: Reward }> {
     return request(`/api/households/${id}/rewards`, { method: 'POST', body: JSON.stringify(body) })
   },
+
+  rooms(id: string): Promise<{ rooms: Room[] }> {
+    return request(`/api/households/${id}/rooms`)
+  },
+
+  createRoom(id: string, body: CreateRoomRequest): Promise<{ room: Room }> {
+    return request(`/api/households/${id}/rooms`, { method: 'POST', body: JSON.stringify(body) })
+  },
+
+  categories(id: string): Promise<{ categories: HouseholdCategory[] }> {
+    return request(`/api/households/${id}/categories`)
+  },
+
+  createCategory(id: string, body: CreateCategoryRequest): Promise<{ category: HouseholdCategory }> {
+    return request(`/api/households/${id}/categories`, { method: 'POST', body: JSON.stringify(body) })
+  },
+}
+
+// ── Rooms ─────────────────────────────────────────────────────────────────────
+
+export const rooms = {
+  update(id: string, body: UpdateRoomRequest): Promise<{ room: Room }> {
+    return request(`/api/rooms/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+  },
+
+  delete(id: string): Promise<void> {
+    return request(`/api/rooms/${id}`, { method: 'DELETE' })
+  },
+}
+
+// ── Categories ────────────────────────────────────────────────────────────────
+
+export const categoriesApi = {
+  update(id: string, body: UpdateCategoryRequest): Promise<{ category: HouseholdCategory }> {
+    return request(`/api/categories/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+  },
+
+  delete(id: string): Promise<void> {
+    return request(`/api/categories/${id}`, { method: 'DELETE' })
+  },
 }
 
 // ── Members ───────────────────────────────────────────────────────────────────
@@ -223,6 +284,10 @@ export const members = {
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 
 export const tasks = {
+  update(id: string, body: UpdateTaskRequest): Promise<{ task: Task }> {
+    return request(`/api/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+  },
+
   complete(id: string, memberId: string): Promise<TaskCompleteResponse> {
     return request(`/api/tasks/${id}/complete`, {
       method: 'POST',

@@ -1,14 +1,38 @@
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { Colors } from '@/constants/colors'
+import { useRef } from 'react'
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  PanResponder,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native'
+import * as Haptics from 'expo-haptics'
+import { getCategoryColor } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
-import type { Member, Task } from '@/types'
+import { useHouseholdStore } from '@/lib/store'
+import type { Member, Room, Task } from '@/types'
 
 interface TaskCardProps {
-  task:         Task
-  members:      Member[]
-  isCompleted:  boolean
-  isCompleting: boolean
-  onComplete?:  () => void
+  task:          Task
+  members:       Member[]
+  rooms:         Room[]
+  isCompleted:   boolean
+  isCompleting:  boolean
+  onComplete?:   () => void
+  onDelete?:     () => void
+  onLongPress?:  () => void
+}
+
+const SWIPE_THRESHOLD = -80   // px — how far left to trigger delete
+const SWIPE_CLAMP     = -100  // px — max drag distance
+
+function formatDueShort(dateStr: string): string {
+  const [, m, d] = dateStr.split('-')
+  return `${parseInt(m)}/${parseInt(d)}`
 }
 
 function daysOverdue(nextDue: string): number {
@@ -18,88 +42,192 @@ function daysOverdue(nextDue: string): number {
   return Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86_400_000))
 }
 
-export function TaskCard({ task, members, isCompleted, isCompleting, onComplete }: TaskCardProps) {
-  const catColors =
-    Colors.category[task.category as keyof typeof Colors.category] ?? Colors.category.home
+export function TaskCard({ task, members, rooms, isCompleted, isCompleting, onComplete, onDelete, onLongPress }: TaskCardProps) {
+  const today      = new Date().toISOString().slice(0, 10)
+  const categories = useHouseholdStore((s) => s.categories)
+
+  const storeCategory = categories.find((c) => c.name === task.category)
+  const catColors     = getCategoryColor(storeCategory?.sort_order ?? 0)
 
   const assignee   = task.assigned_to ? members.find((m) => m.id === task.assigned_to) : null
   const emoji      = assignee?.emoji ?? '👤'
   const assignName = assignee?.display_name ?? 'Anyone'
+
+  const room = task.room_id ? rooms.find((r) => r.id === task.room_id) : null
 
   const overdueDays =
     !isCompleted && task.next_due && task.next_due < new Date().toISOString().slice(0, 10)
       ? daysOverdue(task.next_due)
       : 0
 
+  // ── Swipe-to-delete ────────────────────────────────────────────────────────
+
+  const panX = useRef(new Animated.Value(0)).current
+
+  const snapBack = () =>
+    Animated.spring(panX, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }).start()
+
+  const snapOff = (callback: () => void) =>
+    Animated.timing(panX, { toValue: -500, duration: 220, useNativeDriver: true }).start(callback)
+
+  const panResponder = useRef(
+    PanResponder.create({
+      // Only claim the gesture when it's a clear leftward horizontal swipe
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > 10 &&
+        Math.abs(gs.dx) > Math.abs(gs.dy) * 1.5 &&
+        gs.dx < 0,
+
+      onPanResponderMove: (_, gs) => {
+        if (gs.dx < 0) panX.setValue(Math.max(gs.dx, SWIPE_CLAMP))
+      },
+
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dx < SWIPE_THRESHOLD && onDelete) {
+          // Lock card in delete-ready position while the alert is shown
+          Animated.spring(panX, { toValue: SWIPE_THRESHOLD, useNativeDriver: true }).start()
+          Alert.alert(
+            'Delete task?',
+            `"${task.title}" will be permanently removed.`,
+            [
+              { text: 'Cancel', style: 'cancel', onPress: snapBack },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => snapOff(onDelete),
+              },
+            ],
+          )
+        } else {
+          snapBack()
+        }
+      },
+
+      onPanResponderTerminate: snapBack,
+    }),
+  ).current
+
+  // ── Checkbox ───────────────────────────────────────────────────────────────
+
   const canComplete = !isCompleted && !isCompleting && !!onComplete
 
   return (
-    <TouchableOpacity
-      activeOpacity={canComplete ? 0.7 : 1}
-      onPress={canComplete ? onComplete : undefined}
-      style={[styles.card, isCompleted && styles.cardCompleted]}
+    <Animated.View
+      style={[styles.swipeWrapper, { transform: [{ translateX: panX }] }]}
+      {...panResponder.panHandlers}
     >
-      {/* Left category bar */}
-      <View style={[styles.bar, { backgroundColor: catColors.text }]} />
+      <Pressable
+        style={[styles.card, isCompleted && styles.cardCompleted]}
+        onLongPress={onLongPress ? () => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+          onLongPress()
+        } : undefined}
+        delayLongPress={400}
+      >
 
-      <View style={styles.content}>
-        {/* Row 1: title + points / checkmark */}
-        <View style={styles.row}>
-          <Text
-            style={[styles.title, isCompleted && styles.titleCompleted]}
-            numberOfLines={2}
-          >
-            {task.title}
-          </Text>
-
+        {/* Checkbox — only tappable on incomplete tasks */}
+        <TouchableOpacity
+          style={styles.checkboxWrapper}
+          onPress={canComplete ? onComplete : undefined}
+          disabled={!canComplete}
+          activeOpacity={0.5}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
           {isCompleting ? (
-            <ActivityIndicator size="small" color={Colors.primary} style={styles.spinner} />
+            <ActivityIndicator size="small" color={Colors.primary} />
           ) : isCompleted ? (
-            <View style={styles.checkBadge}>
-              <Text style={styles.checkText}>✓</Text>
+            <View style={styles.checkboxChecked}>
+              <Text style={styles.checkmark}>✓</Text>
             </View>
           ) : (
-            <View style={[styles.pointsBadge, { backgroundColor: Colors.goldLight }]}>
-              <Text style={[styles.pointsText, { color: Colors.textOnGold }]}>
-                {task.points} pts
+            <View style={[styles.checkboxUnchecked, { borderColor: catColors.text }]} />
+          )}
+        </TouchableOpacity>
+
+        {/* Left category bar */}
+        <View style={[styles.bar, { backgroundColor: catColors.text }]} />
+
+        <View style={styles.content}>
+          {/* Row 1: title + points badge */}
+          <View style={styles.row}>
+            <Text
+              style={[styles.title, isCompleted && styles.titleCompleted]}
+              numberOfLines={2}
+            >
+              {task.title}
+            </Text>
+
+            {!isCompleted && !isCompleting && (
+              <View style={[styles.pointsBadge, { backgroundColor: Colors.goldLight }]}>
+                <Text style={[styles.pointsText, { color: Colors.textOnGold }]}>
+                  {task.points} pts
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Row 2: category pill + room pill + assignee */}
+          <View style={[styles.row, styles.metaRow]}>
+            <View style={[styles.categoryPill, { backgroundColor: catColors.bg }]}>
+              <Text style={[styles.categoryText, { color: catColors.text }]}>
+                {task.category}
+              </Text>
+            </View>
+
+            {room && (
+              <View style={styles.roomPill}>
+                <Text style={styles.roomPillText}>{room.emoji} {room.name}</Text>
+              </View>
+            )}
+
+            {!isCompleted && task.next_due && (
+              <View style={[
+                styles.duePill,
+                task.next_due < today  ? styles.duePillOverdue
+                : task.next_due === today ? styles.duePillToday
+                : styles.duePillUpcoming,
+              ]}>
+                <Text style={[
+                  styles.duePillText,
+                  task.next_due < today  ? styles.duePillTextOverdue
+                  : task.next_due === today ? styles.duePillTextToday
+                  : styles.duePillTextUpcoming,
+                ]}>
+                  {formatDueShort(task.next_due)}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.assigneeRow}>
+              <Text style={styles.assigneeEmoji}>{emoji}</Text>
+              <Text style={styles.assigneeName}>{assignName}</Text>
+            </View>
+          </View>
+
+          {/* Row 3: overdue badge */}
+          {overdueDays > 0 && (
+            <View style={styles.overdueBadge}>
+              <Text style={styles.overdueText}>
+                ⚠ {overdueDays} {overdueDays === 1 ? 'day' : 'days'} overdue
               </Text>
             </View>
           )}
         </View>
-
-        {/* Row 2: category pill + assignee */}
-        <View style={[styles.row, styles.metaRow]}>
-          <View style={[styles.categoryPill, { backgroundColor: catColors.bg }]}>
-            <Text style={[styles.categoryText, { color: catColors.text }]}>
-              {task.category}
-            </Text>
-          </View>
-
-          <View style={styles.assigneeRow}>
-            <Text style={styles.assigneeEmoji}>{emoji}</Text>
-            <Text style={styles.assigneeName}>{assignName}</Text>
-          </View>
-        </View>
-
-        {/* Row 3: overdue badge (only if overdue) */}
-        {overdueDays > 0 && (
-          <View style={styles.overdueBadge}>
-            <Text style={styles.overdueText}>
-              ⚠ {overdueDays} {overdueDays === 1 ? 'day' : 'days'} overdue
-            </Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
+      </Pressable>
+    </Animated.View>
   )
 }
 
 const styles = StyleSheet.create({
+  swipeWrapper: {
+    marginBottom: 10,
+  },
+
   card: {
     flexDirection:   'row',
+    alignItems:      'center',
     backgroundColor: Colors.surface,
     borderRadius:    16,
-    marginBottom:    10,
     shadowColor:     '#000',
     shadowOffset:    { width: 0, height: 2 },
     shadowOpacity:   0.05,
@@ -112,10 +240,38 @@ const styles = StyleSheet.create({
     opacity:         0.8,
   },
 
-  // Left colour indicator bar
+  // Checkbox
+  checkboxWrapper: {
+    width:           48,
+    alignSelf:       'stretch',
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  checkboxUnchecked: {
+    width:        22,
+    height:       22,
+    borderRadius: 11,
+    borderWidth:  2,
+  },
+  checkboxChecked: {
+    width:           22,
+    height:          22,
+    borderRadius:    11,
+    backgroundColor: Colors.success,
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  checkmark: {
+    color:      '#fff',
+    fontFamily: Font.bold,
+    fontSize:   12,
+    lineHeight: 14,
+  },
+
+  // Left colour bar
   bar: {
-    width:        4,
-    alignSelf:    'stretch',
+    width:     4,
+    alignSelf: 'stretch',
   },
 
   content: {
@@ -135,44 +291,26 @@ const styles = StyleSheet.create({
 
   // Title
   title: {
-    flex:       1,
-    fontFamily: Font.semiBold,
-    fontSize:   FontSize.base,
-    color:      Colors.textPrimary,
+    flex:        1,
+    fontFamily:  Font.semiBold,
+    fontSize:    FontSize.base,
+    color:       Colors.textPrimary,
     marginRight: 10,
   },
   titleCompleted: {
-    color: Colors.textSecondary,
+    color:              Colors.textSecondary,
+    textDecorationLine: 'line-through',
   },
 
-  // Points
+  // Points badge
   pointsBadge: {
-    borderRadius:    20,
+    borderRadius:      20,
     paddingHorizontal: 10,
     paddingVertical:   4,
   },
   pointsText: {
     fontFamily: Font.semiBold,
     fontSize:   FontSize.xs,
-  },
-
-  // Check
-  checkBadge: {
-    width:           28,
-    height:          28,
-    borderRadius:    14,
-    backgroundColor: Colors.success,
-    alignItems:      'center',
-    justifyContent:  'center',
-  },
-  checkText: {
-    color:      '#fff',
-    fontFamily: Font.bold,
-    fontSize:   FontSize.sm,
-  },
-
-  spinner: {
-    marginLeft: 8,
   },
 
   // Category pill
@@ -182,9 +320,24 @@ const styles = StyleSheet.create({
     paddingVertical:   3,
   },
   categoryText: {
+    fontFamily:    Font.medium,
+    fontSize:      FontSize.xs,
+    textTransform: 'capitalize',
+  },
+
+  // Room pill
+  roomPill: {
+    borderRadius:      20,
+    paddingHorizontal: 8,
+    paddingVertical:   3,
+    backgroundColor:   Colors.borderSubtle,
+    borderWidth:       1,
+    borderColor:       Colors.border,
+  },
+  roomPillText: {
     fontFamily: Font.medium,
     fontSize:   FontSize.xs,
-    textTransform: 'capitalize',
+    color:      Colors.textSecondary,
   },
 
   // Assignee
@@ -202,6 +355,35 @@ const styles = StyleSheet.create({
     fontSize:   FontSize.xs,
     color:      Colors.textSecondary,
   },
+
+  // Due date pill
+  duePill: {
+    borderRadius:      20,
+    paddingHorizontal: 7,
+    paddingVertical:   3,
+  },
+  duePillUpcoming: {
+    backgroundColor: Colors.borderSubtle,
+    borderWidth:     1,
+    borderColor:     Colors.border,
+  },
+  duePillToday: {
+    backgroundColor: Colors.warningLight,
+    borderWidth:     1,
+    borderColor:     Colors.warning,
+  },
+  duePillOverdue: {
+    backgroundColor: Colors.dangerLight,
+    borderWidth:     1,
+    borderColor:     Colors.danger,
+  },
+  duePillText: {
+    fontFamily: Font.medium,
+    fontSize:   FontSize.xs,
+  },
+  duePillTextUpcoming: { color: Colors.textSecondary },
+  duePillTextToday:    { color: Colors.warning },
+  duePillTextOverdue:  { color: Colors.danger },
 
   // Overdue badge
   overdueBadge: {

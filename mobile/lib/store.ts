@@ -6,12 +6,14 @@ import { create } from 'zustand'
 import type {
   Completion,
   Household,
+  HouseholdCategory,
   LoginResponse,
   Member,
   Reward,
+  Room,
   Task,
 } from '@/types'
-import { auth as authApi, getStoredTokens, storeTokens, storeAccessToken, households as householdsApi } from '@/lib/api'
+import { auth as authApi, getStoredTokens, storeTokens, storeAccessToken, households as householdsApi, rooms as roomsApi } from '@/lib/api'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -123,17 +125,27 @@ interface HouseholdState {
   tasks:       Task[]
   completions: Completion[]
   rewards:     Reward[]
+  rooms:       Room[]
+  categories:  HouseholdCategory[]
   isLoading:   boolean
 
-  load:           (householdId: string) => Promise<void>
-  addCompletion:  (c: Completion) => void
-  updateTask:     (taskId: string, patch: Partial<Task>) => void
-  addTask:        (task: Task) => void
-  removeTask:     (taskId: string) => void
-  addMember:      (member: Member) => void
-  updateMember:   (memberId: string, patch: Partial<Member>) => void
-  addReward:      (reward: Reward) => void
-  clear:          () => void
+  load:               (householdId: string) => Promise<void>
+  addCompletion:      (c: Completion) => void
+  updateTask:         (taskId: string, patch: Partial<Task>) => void
+  addTask:            (task: Task) => void
+  removeTask:         (taskId: string) => void
+  addMember:          (member: Member) => void
+  updateMember:       (memberId: string, patch: Partial<Member>) => void
+  addReward:          (reward: Reward) => void
+  addRoom:            (room: Room) => void
+  updateRoom:         (roomId: string, patch: Partial<Room>) => void
+  removeRoom:         (roomId: string) => void
+  addCategory:        (category: HouseholdCategory) => void
+  updateCategory:     (categoryId: string, patch: Partial<HouseholdCategory>) => void
+  removeCategory:     (categoryId: string) => void
+  /** After a category rename, update the category name on all in-memory tasks */
+  renameCategoryOnTasks: (oldName: string, newName: string) => void
+  clear:              () => void
 }
 
 export const useHouseholdStore = create<HouseholdState>((set) => ({
@@ -142,20 +154,27 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
   tasks:       [],
   completions: [],
   rewards:     [],
+  rooms:       [],
+  categories:  [],
   isLoading:   false,
 
   load: async (householdId) => {
     set({ isLoading: true })
     try {
-      const [{ household }, { members }, { tasks }, { completions }, { rewards }] =
-        await Promise.all([
-          householdsApi.get(householdId),
-          householdsApi.members(householdId),
-          householdsApi.tasks(householdId),
-          householdsApi.completions(householdId),
-          householdsApi.rewards(householdId),
-        ])
-      set({ household, members, tasks, completions, rewards })
+      const [
+        { household }, { members }, { tasks }, { completions }, { rewards }, { rooms },
+        categoriesResult,
+      ] = await Promise.all([
+        householdsApi.get(householdId),
+        householdsApi.members(householdId),
+        householdsApi.tasks(householdId),
+        householdsApi.completions(householdId),
+        householdsApi.rewards(householdId),
+        householdsApi.rooms(householdId),
+        // Graceful fallback: categories table may not exist on older deployments
+        householdsApi.categories(householdId).catch(() => ({ categories: [] as import('@/types').HouseholdCategory[] })),
+      ])
+      set({ household, members, tasks, completions, rewards, rooms, categories: categoriesResult.categories })
     } finally {
       set({ isLoading: false })
     }
@@ -186,8 +205,35 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
   addReward: (reward) =>
     set((s) => ({ rewards: [...s.rewards, reward] })),
 
+  addRoom: (room) =>
+    set((s) => ({ rooms: [...s.rooms, room] })),
+
+  updateRoom: (roomId, patch) =>
+    set((s) => ({
+      rooms: s.rooms.map((r) => (r.id === roomId ? { ...r, ...patch } : r)),
+    })),
+
+  removeRoom: (roomId) =>
+    set((s) => ({ rooms: s.rooms.filter((r) => r.id !== roomId) })),
+
+  addCategory: (category) =>
+    set((s) => ({ categories: [...s.categories, category] })),
+
+  updateCategory: (categoryId, patch) =>
+    set((s) => ({
+      categories: s.categories.map((cat) => (cat.id === categoryId ? { ...cat, ...patch } : cat)),
+    })),
+
+  removeCategory: (categoryId) =>
+    set((s) => ({ categories: s.categories.filter((cat) => cat.id !== categoryId) })),
+
+  renameCategoryOnTasks: (oldName, newName) =>
+    set((s) => ({
+      tasks: s.tasks.map((t) => (t.category === oldName ? { ...t, category: newName } : t)),
+    })),
+
   clear: () =>
-    set({ household: null, members: [], tasks: [], completions: [], rewards: [] }),
+    set({ household: null, members: [], tasks: [], completions: [], rewards: [], rooms: [], categories: [] }),
 }))
 
 // ── Computed selectors ────────────────────────────────────────────────────────
