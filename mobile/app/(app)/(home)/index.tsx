@@ -550,7 +550,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems:      'center',
     justifyContent:  'center',
-    marginTop:       4,
     shadowColor:     Colors.primary,
     shadowOffset:    { width: 0, height: 2 },
     shadowOpacity:   0.3,

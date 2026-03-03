@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { households as householdsApi } from '@/lib/api'
 import { useAuthStore, useHouseholdStore } from '@/lib/store'
@@ -22,6 +23,25 @@ import { useLayout } from '@/constants/layout'
 import type { Recurrence } from '@/types'
 
 // ── Static data ───────────────────────────────────────────────────────────────
+
+const DUE_CHIPS: { label: string; days: number | null }[] = [
+  { label: 'No date',  days: null },
+  { label: 'Today',    days: 0 },
+  { label: 'Tomorrow', days: 1 },
+  { label: '1 week',   days: 7 },
+  { label: '2 weeks',  days: 14 },
+  { label: '1 month',  days: 30 },
+]
+
+function addDays(n: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return d.toLocaleDateString('en-CA')
+}
+
+function chipDate(days: number | null): string | null {
+  return days === null ? null : addDays(days)
+}
 
 const BASIC_RECURRENCES: { value: Recurrence; label: string }[] = [
   { value: 'daily',    label: 'Daily' },
@@ -57,11 +77,13 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
   const [categoryOpen,   setCategoryOpen]   = useState(false)
   const [roomId,         setRoomId]         = useState<string | null>(null)
   const [roomOpen,       setRoomOpen]       = useState(false)
-  const [recurrence,     setRecurrence]     = useState<Recurrence>('weekly')
-  const [assignedTo,     setAssignedTo]     = useState<string | null>(null)
-  const [showAdvanced,   setShowAdvanced]   = useState(false)
-  const [loading,        setLoading]        = useState(false)
-  const [error,          setError]          = useState<string | null>(null)
+  const [recurrence,       setRecurrence]       = useState<Recurrence>('weekly')
+  const [assignedTo,       setAssignedTo]       = useState<string | null>(null)
+  const [nextDue,          setNextDue]          = useState<string | null>(null)
+  const [showCustomPicker, setShowCustomPicker] = useState(false)
+  const [showAdvanced,     setShowAdvanced]     = useState(false)
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState<string | null>(null)
 
   // Use first category as default when state is empty (e.g. first render before categories load)
   const effectiveCategory = category || categories[0]?.name || 'home'
@@ -69,6 +91,10 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
   const catColor          = getCategoryColor(selectedCat?.sort_order ?? 0)
 
   const selectedRoom = rooms.find((r) => r.id === roomId) ?? null
+
+  const isPresetActive = DUE_CHIPS.some((c) => chipDate(c.days) === nextDue)
+  const isCustomActive = showCustomPicker || (nextDue !== null && !isPresetActive)
+  const pickerDate     = nextDue ? new Date(nextDue + 'T00:00:00') : new Date()
 
   function reset() {
     setTitle('')
@@ -78,6 +104,8 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
     setRoomOpen(false)
     setRecurrence('weekly')
     setAssignedTo(null)
+    setNextDue(null)
+    setShowCustomPicker(false)
     setShowAdvanced(false)
     setError(null)
   }
@@ -98,6 +126,7 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
         recurrence,
         assignedTo: assignedTo ?? undefined,
         roomId:     roomId ?? undefined,
+        nextDue:    nextDue ?? undefined,
       })
       addTask(task)
       handleClose()
@@ -348,6 +377,54 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
                 </Text>
               </TouchableOpacity>
 
+              {/* Due date */}
+              <Text style={styles.fieldLabel}>Next due date</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.pillRow}
+              >
+                {DUE_CHIPS.map((c) => {
+                  const val      = chipDate(c.days)
+                  const isActive = nextDue === val && !showCustomPicker
+                  return (
+                    <TouchableOpacity
+                      key={c.label}
+                      onPress={() => { setNextDue(val); setShowCustomPicker(false) }}
+                      style={[styles.pill, isActive && styles.pillSelected]}
+                    >
+                      <Text style={[styles.pillLabel, isActive && styles.pillLabelSelected]}>
+                        {c.label}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })}
+                <TouchableOpacity
+                  onPress={() => setShowCustomPicker((v) => !v)}
+                  style={[styles.pill, isCustomActive && styles.pillSelected]}
+                >
+                  <Text style={[styles.pillLabel, isCustomActive && styles.pillLabelSelected]}>
+                    {isCustomActive && nextDue && !showCustomPicker ? nextDue : 'Custom…'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+
+              {showCustomPicker && (
+                <DateTimePicker
+                  value={pickerDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(_: DateTimePickerEvent, date?: Date) => {
+                    if (date) {
+                      setNextDue(date.toLocaleDateString('en-CA'))
+                      if (Platform.OS === 'android') setShowCustomPicker(false)
+                    }
+                  }}
+                  minimumDate={new Date()}
+                  style={styles.datePicker}
+                />
+              )}
+
               {/* Assignee */}
               <Text style={styles.fieldLabel}>Assign to</Text>
               <ScrollView
@@ -504,7 +581,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius:    20,
     paddingVertical: 8,
-    shadowColor:     '#000',
+    shadowColor:     Colors.textPrimary,
     shadowOffset:    { width: 0, height: 8 },
     shadowOpacity:   0.15,
     shadowRadius:    24,
@@ -598,6 +675,9 @@ const styles = StyleSheet.create({
     fontFamily: Font.medium,
     fontSize:   FontSize.sm,
     color:      Colors.primary,
+  },
+  datePicker: {
+    marginBottom: 12,
   },
 
   // Assignee

@@ -373,7 +373,7 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                   onChange={(_: DateTimePickerEvent, date?: Date) => {
                     if (date) {
-                      setNextDue(date.toISOString().slice(0, 10))
+                      setNextDue(date.toLocaleDateString('en-CA'))
                       if (Platform.OS === 'android') setShowCustomPicker(false)
                     }
                   }}
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius:    20,
     paddingVertical: 8,
-    shadowColor:     '#000',
+    shadowColor:     Colors.textPrimary,
     shadowOffset:    { width: 0, height: 8 },
     shadowOpacity:   0.15,
     shadowRadius:    24,
