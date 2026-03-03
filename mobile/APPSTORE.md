@@ -1,7 +1,7 @@
 # Keptt — App Store Metadata
 
 ## App Name
-Keptt
+Chorify
 
 ## Subtitle (≤ 30 chars)
 Household chores, made fun
@@ -16,7 +16,7 @@ Lifestyle
 
 ## Description (≤ 4000 chars)
 
-Keptt turns household chores into a game the whole family wants to play.
+Chorify turns household chores into a game the whole family wants to play.
 
 Create tasks, assign them to family members, earn points for every completion, and redeem those points for real rewards — all from a beautifully simple app that just works.
 
