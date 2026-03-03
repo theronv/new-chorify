@@ -11,9 +11,9 @@ import {
   View,
 } from 'react-native'
 import * as Haptics from 'expo-haptics'
-import { getCategoryColor } from '@/constants/colors'
+import { Colors, getCategoryColor } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
-import { useHouseholdStore } from '@/lib/store'
+import { getTodayString, useHouseholdStore } from '@/lib/store'
 import type { Member, Room, Task } from '@/types'
 
 interface TaskCardProps {
@@ -43,7 +43,7 @@ function daysOverdue(nextDue: string): number {
 }
 
 export function TaskCard({ task, members, rooms, isCompleted, isCompleting, onComplete, onDelete, onLongPress }: TaskCardProps) {
-  const today      = new Date().toISOString().slice(0, 10)
+  const today      = getTodayString()
   const categories = useHouseholdStore((s) => s.categories)
 
   const storeCategory = categories.find((c) => c.name === task.category)
@@ -56,7 +56,7 @@ export function TaskCard({ task, members, rooms, isCompleted, isCompleting, onCo
   const room = task.room_id ? rooms.find((r) => r.id === task.room_id) : null
 
   const overdueDays =
-    !isCompleted && task.next_due && task.next_due < new Date().toISOString().slice(0, 10)
+    !isCompleted && task.next_due && task.next_due < today
       ? daysOverdue(task.next_due)
       : 0
 
@@ -148,7 +148,7 @@ export function TaskCard({ task, members, rooms, isCompleted, isCompleting, onCo
         <View style={[styles.bar, { backgroundColor: catColors.text }]} />
 
         <View style={styles.content}>
-          {/* Row 1: title + points badge */}
+          {/* Row 1: title */}
           <View style={styles.row}>
             <Text
               style={[styles.title, isCompleted && styles.titleCompleted]}
@@ -156,14 +156,6 @@ export function TaskCard({ task, members, rooms, isCompleted, isCompleting, onCo
             >
               {task.title}
             </Text>
-
-            {!isCompleted && !isCompleting && (
-              <View style={[styles.pointsBadge, { backgroundColor: Colors.goldLight }]}>
-                <Text style={[styles.pointsText, { color: Colors.textOnGold }]}>
-                  {task.points} pts
-                </Text>
-              </View>
-            )}
           </View>
 
           {/* Row 2: category pill + room pill + assignee */}
@@ -228,7 +220,7 @@ const styles = StyleSheet.create({
     alignItems:      'center',
     backgroundColor: Colors.surface,
     borderRadius:    16,
-    shadowColor:     '#000',
+    shadowColor:     Colors.textPrimary,
     shadowOffset:    { width: 0, height: 2 },
     shadowOpacity:   0.05,
     shadowRadius:    8,
@@ -262,7 +254,7 @@ const styles = StyleSheet.create({
     justifyContent:  'center',
   },
   checkmark: {
-    color:      '#fff',
+    color:      Colors.textOnPrimary,
     fontFamily: Font.bold,
     fontSize:   12,
     lineHeight: 14,
@@ -300,17 +292,6 @@ const styles = StyleSheet.create({
   titleCompleted: {
     color:              Colors.textSecondary,
     textDecorationLine: 'line-through',
-  },
-
-  // Points badge
-  pointsBadge: {
-    borderRadius:      20,
-    paddingHorizontal: 10,
-    paddingVertical:   4,
-  },
-  pointsText: {
-    fontFamily: Font.semiBold,
-    fontSize:   FontSize.xs,
   },
 
   // Category pill

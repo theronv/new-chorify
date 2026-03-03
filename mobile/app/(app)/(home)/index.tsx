@@ -15,13 +15,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { tasks as tasksApi } from '@/lib/api'
 import {
   selectIsCompletedToday,
+  getTodayString,
   useAuthStore,
   useHouseholdStore,
 } from '@/lib/store'
 import { AddTaskSheet } from '@/components/AddTaskSheet'
 import { EditTaskSheet } from '@/components/EditTaskSheet'
 import { TaskCard } from '@/components/TaskCard'
-import { Colors } from '@/constants/colors'
+import { Colors, Radius } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
 import type { Task } from '@/types'
@@ -41,7 +42,6 @@ export default function HomeScreen() {
   const load          = useHouseholdStore((s) => s.load)
   const addCompletion = useHouseholdStore((s) => s.addCompletion)
   const updateTask    = useHouseholdStore((s) => s.updateTask)
-  const updateMember  = useHouseholdStore((s) => s.updateMember)
   const removeTask    = useHouseholdStore((s) => s.removeTask)
 
   const [sheetVisible,    setSheetVisible]    = useState(false)
@@ -51,7 +51,7 @@ export default function HomeScreen() {
   const [roomPickerOpen,  setRoomPickerOpen]  = useState(false)
 
   const confettiRef = useRef<any>(null)
-  const today       = new Date().toISOString().slice(0, 10)
+  const today       = getTodayString()
 
   // ── Filter + partition tasks into three sections ──────────────────────────
 
@@ -99,14 +99,10 @@ export default function HomeScreen() {
                 household_id:   task.household_id,
                 completed_date: res.completion.completed_date,
                 completed_at:   new Date().toISOString(),
-                points:         res.completion.points,
               })
               updateTask(task.id, {
                 next_due:       res.nextDue,
                 last_completed: res.completion.completed_date,
-              })
-              updateMember(res.completion.member_id, {
-                points_total: res.newPointsTotal,
               })
               confettiRef.current?.start()
             } catch {
@@ -390,7 +386,7 @@ const styles = StyleSheet.create({
     marginTop:         10,
     paddingHorizontal: 12,
     paddingVertical:   7,
-    borderRadius:      20,
+    borderRadius:      Radius.full,
     backgroundColor:   Colors.borderSubtle,
     borderWidth:       1.5,
     borderColor:       Colors.border,
@@ -426,9 +422,9 @@ const styles = StyleSheet.create({
   pickerPopup: {
     width:           '100%',
     backgroundColor: Colors.surface,
-    borderRadius:    20,
+    borderRadius:    Radius.xl,
     paddingVertical: 8,
-    shadowColor:     '#000',
+    shadowColor:     Colors.textPrimary,
     shadowOffset:    { width: 0, height: 8 },
     shadowOpacity:   0.15,
     shadowRadius:    24,
@@ -449,7 +445,7 @@ const styles = StyleSheet.create({
     gap:               12,
     paddingHorizontal: 16,
     paddingVertical:   13,
-    borderRadius:      12,
+    borderRadius:      Radius.md,
     marginHorizontal:  6,
   },
   pickerOptionSelected: {
@@ -552,7 +548,7 @@ const styles = StyleSheet.create({
   addBtnIcon: {
     fontSize:   26,
     lineHeight: 30,
-    color:      '#fff',
+    color:      Colors.textOnPrimary,
     fontFamily: Font.regular,
   },
 })

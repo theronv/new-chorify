@@ -2,17 +2,20 @@ import { useEffect } from 'react'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import * as SecureStore from 'expo-secure-store'
-import { useAuthStore, useHouseholdStore } from '@/lib/store'
+import { useAuthStore, useHouseholdStore, setStoreTimezone } from '@/lib/store'
 import { members as membersApi } from '@/lib/api'
+import { getTimezone } from '@/lib/timezone'
 import {
+  getNotifPref,
   registerForPushNotificationsAsync,
   registerBackgroundFetch,
+  scheduleDailySummary,
+  cancelDailySummary,
+  PUSH_TOKEN_CACHE_KEY,
 } from '@/lib/notifications'
-import { Colors } from '@/constants/colors'
+import { Colors, Shadows } from '@/constants/colors'
 import { Font } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
-
-const PUSH_TOKEN_CACHE_KEY = 'chorify.push_token'
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name']
 
@@ -29,6 +32,9 @@ export default function AppLayout() {
   const updateMember = useHouseholdStore((s) => s.updateMember)
   const { isTablet } = useLayout()
 
+  // Load timezone preference once on mount
+  useEffect(() => { getTimezone().then(setStoreTimezone) }, [])
+
   // Load household data on mount
   useEffect(() => {
     if (householdId) load(householdId)
@@ -39,24 +45,39 @@ export default function AppLayout() {
     if (!memberId) return
 
     async function setup() {
-      const token = await registerForPushNotificationsAsync()
+      const pref = await getNotifPref()
 
-      if (token && memberId) {
-        // Compare against the last token we successfully saved to the server.
-        // We use SecureStore rather than the members array because the members
-        // array hasn't loaded yet when this effect first fires.
-        const cached = await SecureStore.getItemAsync(PUSH_TOKEN_CACHE_KEY)
-        if (token !== cached) {
-          try {
-            await membersApi.update(memberId, { pushToken: token })
-            await SecureStore.setItemAsync(PUSH_TOKEN_CACHE_KEY, token)
-            updateMember(memberId, { push_token: token })
-            console.log('[Push] Token updated on server')
-          } catch (e) {
-            console.warn('[Push] Failed to update token on server:', e)
+      if (pref === 'task') {
+        const token = await registerForPushNotificationsAsync()
+        if (token && memberId) {
+          const cached = await SecureStore.getItemAsync(PUSH_TOKEN_CACHE_KEY)
+          if (token !== cached) {
+            try {
+              await membersApi.update(memberId, { pushToken: token })
+              await SecureStore.setItemAsync(PUSH_TOKEN_CACHE_KEY, token)
+              updateMember(memberId, { push_token: token })
+              console.log('[Push] Token updated on server')
+            } catch (e) {
+              console.warn('[Push] Failed to update token on server:', e)
+            }
+          } else {
+            console.log('[Push] Token unchanged — skipping PATCH')
           }
+        }
+      } else {
+        // Ensure no stale push token is left on the server
+        const cached = await SecureStore.getItemAsync(PUSH_TOKEN_CACHE_KEY)
+        if (cached && memberId) {
+          try {
+            await membersApi.update(memberId, { pushToken: null })
+            await SecureStore.deleteItemAsync(PUSH_TOKEN_CACHE_KEY)
+            updateMember(memberId, { push_token: null })
+          } catch {}
+        }
+        if (pref === 'daily') {
+          await scheduleDailySummary(0) // background fetch will update the count
         } else {
-          console.log('[Push] Token unchanged — skipping PATCH')
+          await cancelDailySummary()
         }
       }
 
@@ -74,8 +95,12 @@ export default function AppLayout() {
         tabBarInactiveTintColor: Colors.tabInactive,
         tabBarStyle: {
           backgroundColor: Colors.tabBackground,
-          borderTopColor:  Colors.border,
-          borderTopWidth:  1,
+          borderTopWidth:  0,
+          shadowColor:     Colors.textPrimary,
+          shadowOffset:    { width: 0, height: -3 },
+          shadowOpacity:   0.08,
+          shadowRadius:    12,
+          elevation:       8,
         },
         tabBarLabelStyle: {
           fontFamily: Font.medium,
@@ -94,15 +119,8 @@ export default function AppLayout() {
       <Tabs.Screen
         name="family"
         options={{
-          title:      'Family',
-          tabBarIcon: tabIcon('people-outline', 'people'),
-        }}
-      />
-      <Tabs.Screen
-        name="rewards"
-        options={{
-          title:      'Rewards',
-          tabBarIcon: tabIcon('gift-outline', 'gift'),
+          title:      'Tasks',
+          tabBarIcon: tabIcon('list-outline', 'list'),
         }}
       />
       <Tabs.Screen

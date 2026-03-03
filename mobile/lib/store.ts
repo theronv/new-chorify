@@ -1,6 +1,6 @@
-// ── Keptt Zustand stores ──────────────────────────────────────────────────────
+// ── Chorify Zustand stores ────────────────────────────────────────────────────
 // auth  — tokens + decoded JWT claims
-// household — household data, members, tasks, completions, rewards
+// household — household data, members, tasks, completions, rooms, categories
 
 import { create } from 'zustand'
 import type {
@@ -9,7 +9,6 @@ import type {
   HouseholdCategory,
   LoginResponse,
   Member,
-  Reward,
   Room,
   Task,
 } from '@/types'
@@ -27,8 +26,27 @@ function decodeJwt(token: string): { sub: string; hid: string | null; mid: strin
   }
 }
 
+// ── Timezone-aware date helpers ───────────────────────────────────────────────
+
+let _tz = 'America/Los_Angeles'
+
+/** Called once on app startup (and whenever the user changes the pref). */
+export function setStoreTimezone(tz: string): void { _tz = tz }
+
+/** Today's date as YYYY-MM-DD in the app timezone. */
+export function getTodayString(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: _tz })
+}
+
+/** 7 days from now as YYYY-MM-DD in the app timezone. */
+export function getWeekFromNowString(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + 7)
+  return d.toLocaleDateString('en-CA', { timeZone: _tz })
+}
+
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
+  return getTodayString()
 }
 
 // ── Auth store ────────────────────────────────────────────────────────────────
@@ -124,7 +142,6 @@ interface HouseholdState {
   members:     Member[]
   tasks:       Task[]
   completions: Completion[]
-  rewards:     Reward[]
   rooms:       Room[]
   categories:  HouseholdCategory[]
   isLoading:   boolean
@@ -136,7 +153,6 @@ interface HouseholdState {
   removeTask:         (taskId: string) => void
   addMember:          (member: Member) => void
   updateMember:       (memberId: string, patch: Partial<Member>) => void
-  addReward:          (reward: Reward) => void
   addRoom:            (room: Room) => void
   updateRoom:         (roomId: string, patch: Partial<Room>) => void
   removeRoom:         (roomId: string) => void
@@ -153,7 +169,6 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
   members:     [],
   tasks:       [],
   completions: [],
-  rewards:     [],
   rooms:       [],
   categories:  [],
   isLoading:   false,
@@ -162,19 +177,18 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
     set({ isLoading: true })
     try {
       const [
-        { household }, { members }, { tasks }, { completions }, { rewards }, { rooms },
+        { household }, { members }, { tasks }, { completions }, { rooms },
         categoriesResult,
       ] = await Promise.all([
         householdsApi.get(householdId),
         householdsApi.members(householdId),
         householdsApi.tasks(householdId),
         householdsApi.completions(householdId),
-        householdsApi.rewards(householdId),
         householdsApi.rooms(householdId),
         // Graceful fallback: categories table may not exist on older deployments
         householdsApi.categories(householdId).catch(() => ({ categories: [] as import('@/types').HouseholdCategory[] })),
       ])
-      set({ household, members, tasks, completions, rewards, rooms, categories: categoriesResult.categories })
+      set({ household, members, tasks, completions, rooms, categories: categoriesResult.categories })
     } finally {
       set({ isLoading: false })
     }
@@ -201,9 +215,6 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
     set((s) => ({
       members: s.members.map((m) => (m.id === memberId ? { ...m, ...patch } : m)),
     })),
-
-  addReward: (reward) =>
-    set((s) => ({ rewards: [...s.rewards, reward] })),
 
   addRoom: (room) =>
     set((s) => ({ rooms: [...s.rooms, room] })),
@@ -233,7 +244,7 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
     })),
 
   clear: () =>
-    set({ household: null, members: [], tasks: [], completions: [], rewards: [], rooms: [], categories: [] }),
+    set({ household: null, members: [], tasks: [], completions: [], rooms: [], categories: [] }),
 }))
 
 // ── Computed selectors ────────────────────────────────────────────────────────
@@ -246,10 +257,8 @@ export function selectTodaysTasks(tasks: Task[]): Task[] {
 
 /** Tasks due in the next 7 days (exclusive of today) */
 export function selectUpcomingTasks(tasks: Task[]): Task[] {
-  const today = todayISO()
-  const week  = new Date()
-  week.setDate(week.getDate() + 7)
-  const weekStr = week.toISOString().slice(0, 10)
+  const today   = todayISO()
+  const weekStr = getWeekFromNowString()
   return tasks.filter(
     (t) => t.next_due != null && t.next_due > today && t.next_due <= weekStr,
   )
@@ -259,13 +268,6 @@ export function selectUpcomingTasks(tasks: Task[]): Task[] {
 export function selectIsCompletedToday(taskId: string, completions: Completion[]): boolean {
   const today = todayISO()
   return completions.some((c) => c.task_id === taskId && c.completed_date === today)
-}
-
-/** Total points earned by a member in the last 30 days */
-export function selectMemberPoints(memberId: string, completions: Completion[]): number {
-  return completions
-    .filter((c) => c.member_id === memberId)
-    .reduce((sum, c) => sum + c.points, 0)
 }
 
 /** Consecutive-day streak for a member */
