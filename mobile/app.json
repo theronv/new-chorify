@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Keptt",
+    "name": "Chorify",
     "slug": "chorify",
-    "scheme": "keptt",
+    "scheme": "chorify",
     "version": "1.0.0",
     "orientation": "all",
     "icon": "./assets/icon.png",
@@ -18,7 +18,7 @@
       "buildNumber": "4",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSUserNotificationUsageDescription": "Keptt sends reminders when household tasks are due."
+        "NSUserNotificationUsageDescription": "Chorify sends reminders when household tasks are due."
       }
     },
     "web": {

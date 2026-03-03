@@ -1,4 +1,4 @@
-// ── Keptt font definitions ────────────────────────────────────────────────────
+// ── Chorify font definitions ──────────────────────────────────────────────────
 // Fraunces  → display headings (playful serif)
 // DM Sans   → body, UI text (modern grotesque)
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Animated, StyleSheet, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Colors } from '@/constants/colors'
+import { Colors, Radius, Shadows } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 
 interface ToastProps {
@@ -24,7 +24,6 @@ export function Toast({ message, type = 'error', visible, onHide }: ToastProps) 
   useEffect(() => {
     if (!visible) return
 
-    // Slide up
     Animated.spring(translateY, {
       toValue: 0,
       useNativeDriver: true,
@@ -33,7 +32,6 @@ export function Toast({ message, type = 'error', visible, onHide }: ToastProps) 
     }).start()
 
     const timer = setTimeout(() => {
-      // Slide down then hide
       Animated.timing(translateY, {
         toValue: 120,
         duration: 250,
@@ -64,20 +62,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    borderRadius: 14,
+    borderRadius: Radius.md,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    // iOS shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    ...Shadows.md,
   },
   text: {
     fontFamily: Font.medium,
     fontSize: FontSize.base,
-    color: '#fff',
+    color: Colors.textOnPrimary,
     textAlign: 'center',
   },
 })

@@ -1,15 +1,13 @@
-// ── Keptt API client ──────────────────────────────────────────────────────────
+// ── Chorify API client ────────────────────────────────────────────────────────
 // Typed wrapper around the Hono/Vercel Edge API.
 // Handles Bearer auth header injection and silent access-token refresh.
 
 import * as SecureStore from 'expo-secure-store'
 import type {
   AuthTokens,
-  Completion,
   CreateCategoryRequest,
   CreateHouseholdRequest,
   CreateMemberRequest,
-  CreateRewardRequest,
   CreateRoomRequest,
   CreateTaskRequest,
   Household,
@@ -18,7 +16,6 @@ import type {
   LoginRequest,
   LoginResponse,
   Member,
-  Reward,
   Room,
   SignupRequest,
   SignupResponse,
@@ -224,14 +221,6 @@ export const households = {
     return request(`/api/households/${id}/completions`)
   },
 
-  rewards(id: string): Promise<{ rewards: Reward[] }> {
-    return request(`/api/households/${id}/rewards`)
-  },
-
-  createReward(id: string, body: CreateRewardRequest): Promise<{ reward: Reward }> {
-    return request(`/api/households/${id}/rewards`, { method: 'POST', body: JSON.stringify(body) })
-  },
-
   rooms(id: string): Promise<{ rooms: Room[] }> {
     return request(`/api/households/${id}/rooms`)
   },
@@ -276,7 +265,7 @@ export const categoriesApi = {
 // ── Members ───────────────────────────────────────────────────────────────────
 
 export const members = {
-  update(id: string, body: { displayName?: string; emoji?: string; pushToken?: string; avatarUrl?: string | null }): Promise<{ member: Member }> {
+  update(id: string, body: { displayName?: string; emoji?: string; pushToken?: string | null; avatarUrl?: string | null }): Promise<{ member: Member }> {
     return request(`/api/members/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
   },
 }

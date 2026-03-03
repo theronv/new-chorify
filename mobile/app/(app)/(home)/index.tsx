@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import {
   Alert,
+  Image,
   Modal,
   Pressable,
   RefreshControl,
@@ -135,13 +136,15 @@ export default function HomeScreen() {
     <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
-        {/* Title row: title + date on left, add button on right */}
         <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.screenTitle}>Today</Text>
-            <Text style={styles.dateLabel}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </Text>
+          <View style={styles.titleRow}>
+            <Image source={require('@/assets/icon.png')} style={styles.logo} />
+            <View>
+              <Text style={styles.screenTitle}>Today</Text>
+              <Text style={styles.dateLabel}>
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </Text>
+            </View>
           </View>
           <TouchableOpacity
             style={styles.addBtn}
@@ -526,8 +529,17 @@ const styles = StyleSheet.create({
   // Header top row
   headerTop: {
     flexDirection:  'row',
-    alignItems:     'flex-start',
+    alignItems:     'center',
     justifyContent: 'space-between',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    gap:           10,
+  },
+  logo: {
+    width:  36,
+    height: 36,
   },
 
   // Add button (in header)

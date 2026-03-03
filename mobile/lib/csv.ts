@@ -6,11 +6,10 @@ import type { Category, Member, Recurrence, Room, Task } from '@/types'
 // ── Column spec ───────────────────────────────────────────────────────────────
 
 export const CSV_HEADERS = [
-  'id', 'title', 'category', 'recurrence', 'points',
+  'id', 'title', 'category', 'recurrence',
   'room', 'assigned_to', 'next_due', 'notes',
 ] as const
 
-const VALID_CATEGORIES: readonly string[]  = ['home', 'pet', 'outdoor', 'health', 'family', 'vehicle']
 const VALID_RECURRENCES: readonly string[] = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'biannual', 'annual', 'once']
 
 // ── Serialisation ─────────────────────────────────────────────────────────────
@@ -39,11 +38,10 @@ export function tasksToCSV(tasks: Task[], rooms: Room[], members: Member[]): str
       task.title,
       task.category,
       task.recurrence,
-      String(task.points),
-      room?.name         ?? '',
+      room?.name           ?? '',
       member?.display_name ?? '',
-      task.next_due      ?? '',
-      task.notes         ?? '',
+      task.next_due        ?? '',
+      task.notes           ?? '',
     ]
 
     lines.push(row.map(escapeField).join(','))
@@ -99,7 +97,6 @@ export interface ParsedTaskRow {
   title:      string
   category:   Category
   recurrence: Recurrence
-  points:     number
   room:       string   // room name (resolved to ID during import)
   assignedTo: string   // member display_name (resolved to ID during import)
   nextDue:    string   // YYYY-MM-DD or ''
@@ -126,7 +123,6 @@ export function parseTaskRows(csvText: string): ParsedTaskRow[] {
   const idIdx         = idx('id')
   const categoryIdx   = idx('category')
   const recurrenceIdx = idx('recurrence')
-  const pointsIdx     = idx('points')
   const roomIdx       = idx('room')
   const assignedIdx   = idx('assigned_to')
   const nextDueIdx    = idx('next_due')
@@ -143,22 +139,17 @@ export function parseTaskRows(csvText: string): ParsedTaskRow[] {
     const title      = get(row, titleIdx)
     const categoryRaw  = get(row, categoryIdx)  || 'home'
     const recurrRaw    = get(row, recurrenceIdx) || 'weekly'
-    const rawPoints    = get(row, pointsIdx)
-    const points       = rawPoints ? parseInt(rawPoints, 10) : 10
     const nextDue      = get(row, nextDueIdx)
 
-    if (!title)                                                    errors.push('title is required')
-    if (!VALID_CATEGORIES.includes(categoryRaw))                   errors.push(`invalid category "${categoryRaw}"`)
-    if (!VALID_RECURRENCES.includes(recurrRaw))                    errors.push(`invalid recurrence "${recurrRaw}"`)
-    if (isNaN(points) || points < 1 || points > 100)               errors.push(`invalid points "${rawPoints}"`)
-    if (nextDue && !/^\d{4}-\d{2}-\d{2}$/.test(nextDue))          errors.push(`next_due must be YYYY-MM-DD, got "${nextDue}"`)
+    if (!title)                                            errors.push('title is required')
+    if (!VALID_RECURRENCES.includes(recurrRaw))            errors.push(`invalid recurrence "${recurrRaw}"`)
+    if (nextDue && !/^\d{4}-\d{2}-\d{2}$/.test(nextDue)) errors.push(`next_due must be YYYY-MM-DD, got "${nextDue}"`)
 
     return [{
       id:         get(row, idIdx),
       title,
-      category:   categoryRaw   as Category,
-      recurrence: recurrRaw     as Recurrence,
-      points:     isNaN(points) ? 10 : Math.min(100, Math.max(1, points)),
+      category:   categoryRaw as Category,
+      recurrence: recurrRaw   as Recurrence,
       room:       get(row, roomIdx),
       assignedTo: get(row, assignedIdx),
       nextDue,

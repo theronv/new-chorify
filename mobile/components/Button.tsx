@@ -6,7 +6,7 @@ import {
   type TouchableOpacityProps,
   type ViewStyle,
 } from 'react-native'
-import { Colors } from '@/constants/colors'
+import { Colors, Radius, Shadows } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 
 interface ButtonProps extends TouchableOpacityProps {
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
+    borderRadius: Radius.md,
   },
   fullWidth: {
     width: '100%',
@@ -71,6 +71,7 @@ const styles = StyleSheet.create({
   // Variants
   primary: {
     backgroundColor: Colors.primary,
+    ...Shadows.button,
   },
   secondary: {
     backgroundColor: 'transparent',
@@ -92,6 +93,7 @@ const styles = StyleSheet.create({
   // Labels (base)
   label: {
     fontFamily: Font.semiBold,
+    letterSpacing: 0.1,
   },
   primaryLabel:   { color: Colors.textOnPrimary },
   secondaryLabel: { color: Colors.primary },

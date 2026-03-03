@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { households as householdsApi, rooms as roomsApi } from '@/lib/api'
 import { useAuthStore, useHouseholdStore } from '@/lib/store'
-import { Colors } from '@/constants/colors'
+import { Colors, Radius } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
 import type { Room } from '@/types'
@@ -284,9 +284,9 @@ const styles = StyleSheet.create({
   // Room list
   section: {
     backgroundColor: Colors.surface,
-    borderRadius:    16,
+    borderRadius:    Radius.lg,
     overflow:        'hidden',
-    shadowColor:     '#000',
+    shadowColor:     Colors.textPrimary,
     shadowOffset:    { width: 0, height: 2 },
     shadowOpacity:   0.05,
     shadowRadius:    8,
@@ -395,9 +395,9 @@ const styles = StyleSheet.create({
   modalCard: {
     width:           '100%',
     backgroundColor: Colors.surface,
-    borderRadius:    20,
+    borderRadius:    Radius.xl,
     padding:         20,
-    shadowColor:     '#000',
+    shadowColor:     Colors.textPrimary,
     shadowOffset:    { width: 0, height: 8 },
     shadowOpacity:   0.15,
     shadowRadius:    24,
@@ -487,6 +487,6 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontFamily: Font.semiBold,
     fontSize:   FontSize.base,
-    color:      '#fff',
+    color:      Colors.textOnPrimary,
   },
 })

@@ -28,20 +28,46 @@ export function todayISO(): string {
 /**
  * Calculates the next due date for a recurring task.
  * Returns null for one-off tasks.
- * All arithmetic is in UTC to match todayISO().
+ *
+ * Due dates drive recurrence: the next occurrence is always calculated from
+ * the task's current due date, not from the completion date. If the task is
+ * multiple periods overdue, the schedule advances by one period at a time
+ * until the result is in the future (i.e. completing late never resets the
+ * recurring schedule to today).
+ *
+ * @param recurrence  - the task's recurrence string
+ * @param fromDate    - the task's current next_due (YYYY-MM-DD). Falls back
+ *                      to today when null/undefined (e.g. first-time setup).
  */
-export function calcNextDue(recurrence: string): string | null {
-  const d = new Date()
-  switch (recurrence) {
-    case 'daily':     d.setUTCDate(d.getUTCDate() + 1);          break
-    case 'weekly':    d.setUTCDate(d.getUTCDate() + 7);           break
-    case 'biweekly':  d.setUTCDate(d.getUTCDate() + 14);          break
-    case 'monthly':   d.setUTCMonth(d.getUTCMonth() + 1);         break
-    case 'quarterly': d.setUTCMonth(d.getUTCMonth() + 3);         break
-    case 'biannual':  d.setUTCMonth(d.getUTCMonth() + 6);         break
-    case 'annual':    d.setUTCFullYear(d.getUTCFullYear() + 1);   break
-    case 'once':      return null
-    default:          d.setUTCDate(d.getUTCDate() + 7)
+export function calcNextDue(recurrence: string, fromDate?: string | null): string | null {
+  if (recurrence === 'once') return null
+
+  // Parse the base date in UTC; fall back to today if no due date is set yet.
+  const base = fromDate
+    ? new Date(fromDate + 'T00:00:00Z')
+    : new Date(todayISO() + 'T00:00:00Z')
+
+  function addPeriod(d: Date): Date {
+    const next = new Date(d)
+    switch (recurrence) {
+      case 'daily':     next.setUTCDate(next.getUTCDate() + 1);         break
+      case 'weekly':    next.setUTCDate(next.getUTCDate() + 7);          break
+      case 'biweekly':  next.setUTCDate(next.getUTCDate() + 14);         break
+      case 'monthly':   next.setUTCMonth(next.getUTCMonth() + 1);        break
+      case 'quarterly': next.setUTCMonth(next.getUTCMonth() + 3);        break
+      case 'biannual':  next.setUTCMonth(next.getUTCMonth() + 6);        break
+      case 'annual':    next.setUTCFullYear(next.getUTCFullYear() + 1);  break
+      default:          next.setUTCDate(next.getUTCDate() + 7)
+    }
+    return next
   }
-  return d.toISOString().split('T')[0]
+
+  // Advance at least once from the original due date, then keep advancing
+  // until the result is strictly in the future (handles overdue tasks).
+  const today = new Date(todayISO() + 'T00:00:00Z')
+  let next = addPeriod(base)
+  while (next <= today) {
+    next = addPeriod(next)
+  }
+  return next.toISOString().split('T')[0]
 }

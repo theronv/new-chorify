@@ -36,8 +36,6 @@ const ADVANCED_RECURRENCES: { value: Recurrence; label: string }[] = [
   { value: 'once',      label: 'One-time' },
 ]
 
-const POINT_VALUES = [5, 10, 15, 20, 25]
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface AddTaskSheetProps {
@@ -60,7 +58,6 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
   const [roomId,         setRoomId]         = useState<string | null>(null)
   const [roomOpen,       setRoomOpen]       = useState(false)
   const [recurrence,     setRecurrence]     = useState<Recurrence>('weekly')
-  const [pointsIdx,      setPointsIdx]      = useState(1) // default 10pts
   const [assignedTo,     setAssignedTo]     = useState<string | null>(null)
   const [showAdvanced,   setShowAdvanced]   = useState(false)
   const [loading,        setLoading]        = useState(false)
@@ -80,7 +77,6 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
     setRoomId(null)
     setRoomOpen(false)
     setRecurrence('weekly')
-    setPointsIdx(1)
     setAssignedTo(null)
     setShowAdvanced(false)
     setError(null)
@@ -100,7 +96,6 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
         title:      title.trim(),
         category:   effectiveCategory,
         recurrence,
-        points:     POINT_VALUES[pointsIdx],
         assignedTo: assignedTo ?? undefined,
         roomId:     roomId ?? undefined,
       })
@@ -353,34 +348,6 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
                 </Text>
               </TouchableOpacity>
 
-              {/* Points stepper */}
-              <Text style={styles.fieldLabel}>Points</Text>
-              <View style={styles.stepper}>
-                <TouchableOpacity
-                  style={[styles.stepBtn, pointsIdx === 0 && styles.stepBtnDisabled]}
-                  onPress={() => setPointsIdx((i) => Math.max(0, i - 1))}
-                  disabled={pointsIdx === 0}
-                >
-                  <Text style={styles.stepBtnText}>−</Text>
-                </TouchableOpacity>
-                <View style={styles.stepValue}>
-                  <Text style={styles.stepValueText}>{POINT_VALUES[pointsIdx]}</Text>
-                  <Text style={styles.stepValueUnit}>pts</Text>
-                </View>
-                <TouchableOpacity
-                  style={[
-                    styles.stepBtn,
-                    pointsIdx === POINT_VALUES.length - 1 && styles.stepBtnDisabled,
-                  ]}
-                  onPress={() =>
-                    setPointsIdx((i) => Math.min(POINT_VALUES.length - 1, i + 1))
-                  }
-                  disabled={pointsIdx === POINT_VALUES.length - 1}
-                >
-                  <Text style={styles.stepBtnText}>+</Text>
-                </TouchableOpacity>
-              </View>
-
               {/* Assignee */}
               <Text style={styles.fieldLabel}>Assign to</Text>
               <ScrollView
@@ -460,7 +427,7 @@ const styles = StyleSheet.create({
     paddingTop:           12,
     maxHeight:            '88%',
     // Top shadow
-    shadowColor:          '#000',
+    shadowColor:          Colors.textPrimary,
     shadowOffset:         { width: 0, height: -4 },
     shadowOpacity:        0.08,
     shadowRadius:         16,
@@ -631,48 +598,6 @@ const styles = StyleSheet.create({
     fontFamily: Font.medium,
     fontSize:   FontSize.sm,
     color:      Colors.primary,
-  },
-
-  // Points stepper
-  stepper: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    gap:            16,
-    marginBottom:   20,
-  },
-  stepBtn: {
-    width:           44,
-    height:          44,
-    borderRadius:    22,
-    backgroundColor: Colors.primaryLight,
-    alignItems:      'center',
-    justifyContent:  'center',
-  },
-  stepBtnDisabled: {
-    opacity: 0.35,
-  },
-  stepBtnText: {
-    fontFamily: Font.bold,
-    fontSize:   20,
-    color:      Colors.primary,
-    lineHeight: 24,
-  },
-  stepValue: {
-    flex:           1,
-    flexDirection:  'row',
-    alignItems:     'baseline',
-    justifyContent: 'center',
-    gap:            4,
-  },
-  stepValueText: {
-    fontFamily: Font.displayBold,
-    fontSize:   FontSize['2xl'],
-    color:      Colors.textPrimary,
-  },
-  stepValueUnit: {
-    fontFamily: Font.regular,
-    fontSize:   FontSize.base,
-    color:      Colors.textSecondary,
   },
 
   // Assignee

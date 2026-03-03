@@ -6,6 +6,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  Image,
   ScrollView,
   Share,
   StyleSheet,
@@ -246,7 +247,10 @@ export default function SettingsScreen() {
     <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
-        <Text style={styles.screenTitle}>Settings</Text>
+        <View style={styles.titleRow}>
+          <Image source={require('@/assets/icon.png')} style={styles.logo} />
+          <Text style={styles.screenTitle}>Settings</Text>
+        </View>
       </View>
 
       <ScrollView
@@ -594,6 +598,16 @@ const styles = StyleSheet.create({
     fontFamily: Font.displayBold,
     fontSize:   FontSize['3xl'],
     color:      Colors.textPrimary,
+  },
+
+  titleRow: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    gap:           10,
+  },
+  logo: {
+    width:  36,
+    height: 36,
   },
 
   scroll: { flex: 1 },

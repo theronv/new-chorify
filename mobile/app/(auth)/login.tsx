@@ -16,7 +16,7 @@ import { useAuthStore } from '@/lib/store'
 import { Button } from '@/components/Button'
 import { Input } from '@/components/Input'
 import { Toast } from '@/components/Toast'
-import { Colors } from '@/constants/colors'
+import { Colors, Radius, Shadows } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 
 export default function LoginScreen() {
@@ -39,7 +39,6 @@ export default function LoginScreen() {
     try {
       const data = await authApi.login({ email: trimmedEmail, password })
       setTokens(data)
-      // index.tsx reads hid — redirects to /(app)/(home) or /onboarding
       router.replace('/')
     } catch (e: unknown) {
       const message =
@@ -68,8 +67,10 @@ export default function LoginScreen() {
         >
           {/* Brand */}
           <View style={styles.brand}>
-            <Text style={styles.brandEmoji}>🏠</Text>
-            <Text style={styles.wordmark}>Keptt</Text>
+            <View style={styles.logoBadge}>
+              <Text style={styles.brandEmoji}>🏠</Text>
+            </View>
+            <Text style={styles.wordmark}>Chorify</Text>
             <Text style={styles.tagline}>Your family's task tracker</Text>
           </View>
 
@@ -142,18 +143,27 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingBottom: 32,
+    paddingBottom: 40,
     justifyContent: 'center',
   },
 
   // Brand
   brand: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 36,
+  },
+  logoBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    ...Shadows.button,
   },
   brandEmoji: {
-    fontSize: 52,
-    marginBottom: 8,
+    fontSize: 34,
   },
   wordmark: {
     fontFamily: Font.displayBold,
@@ -163,27 +173,25 @@ const styles = StyleSheet.create({
   },
   tagline: {
     fontFamily: Font.regular,
-    fontSize: FontSize.base,
+    fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginTop: 4,
+    marginTop: 6,
+    letterSpacing: 0.1,
   },
 
   // Card
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    borderRadius: Radius.xl,
+    padding: 28,
+    ...Shadows.card,
   },
   cardTitle: {
     fontFamily: Font.displaySemiBold,
     fontSize: FontSize.xl,
     color: Colors.textPrimary,
-    marginBottom: 20,
+    letterSpacing: -0.3,
+    marginBottom: 24,
   },
   field: {
     marginBottom: 16,
@@ -196,7 +204,7 @@ const styles = StyleSheet.create({
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: 28,
   },
   switchText: {
     fontFamily: Font.regular,

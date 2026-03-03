@@ -1,4 +1,4 @@
-// ── Keptt design system colors ────────────────────────────────────────────────
+// ── Chorify design system colors ──────────────────────────────────────────────
 
 export const Colors = {
   // Brand
@@ -71,3 +71,59 @@ export const CATEGORY_COLORS: { bg: string; text: string }[] = [
 export function getCategoryColor(sortOrder: number): { bg: string; text: string } {
   return CATEGORY_COLORS[Math.abs(sortOrder) % CATEGORY_COLORS.length]
 }
+
+// ── Shadow presets ────────────────────────────────────────────────────────────
+// Uses the dark text color as shadow base (blue-tinted, softer than pure #000)
+export const Shadows = {
+  /** Subtle lift — task cards, list items */
+  sm: {
+    shadowColor:   '#1A1D3B',
+    shadowOffset:  { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius:  6,
+    elevation:     2,
+  },
+  /** Standard card depth */
+  card: {
+    shadowColor:   '#1A1D3B',
+    shadowOffset:  { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius:  14,
+    elevation:     4,
+  },
+  /** Modals, sheets, overlaid UI */
+  md: {
+    shadowColor:   '#1A1D3B',
+    shadowOffset:  { width: 0, height: 6 },
+    shadowOpacity: 0.11,
+    shadowRadius:  20,
+    elevation:     8,
+  },
+  /** Deep popups, pickers */
+  lg: {
+    shadowColor:   '#1A1D3B',
+    shadowOffset:  { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius:  30,
+    elevation:     14,
+  },
+  /** Coloured glow for primary action buttons */
+  button: {
+    shadowColor:   '#5B6EF5',
+    shadowOffset:  { width: 0, height: 4 },
+    shadowOpacity: 0.30,
+    shadowRadius:  12,
+    elevation:     5,
+  },
+} as const
+
+// ── Border radius scale ───────────────────────────────────────────────────────
+export const Radius = {
+  xs:   6,
+  sm:   8,
+  md:   12,
+  lg:   16,
+  xl:   20,
+  '2xl': 28,
+  full: 9999,
+} as const

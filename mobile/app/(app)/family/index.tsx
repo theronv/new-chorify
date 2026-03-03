@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import {
   Alert,
+  Image,
   Modal,
   Pressable,
   RefreshControl,
@@ -179,7 +180,10 @@ export default function TasksScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <View style={styles.headerTop}>
-          <Text style={styles.screenTitle}>Tasks</Text>
+          <View style={styles.titleRow}>
+            <Image source={require('@/assets/icon.png')} style={styles.logo} />
+            <Text style={styles.screenTitle}>Tasks</Text>
+          </View>
           <TouchableOpacity
             style={styles.addBtn}
             onPress={() => setSheetVisible(true)}
@@ -558,6 +562,15 @@ const styles = StyleSheet.create({
     flexDirection:  'row',
     alignItems:     'center',
     justifyContent: 'space-between',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems:    'center',
+    gap:           10,
+  },
+  logo: {
+    width:  36,
+    height: 36,
   },
   screenTitle: {
     fontFamily: Font.displayBold,

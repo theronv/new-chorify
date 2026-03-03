@@ -54,7 +54,6 @@ export default function PacksScreen() {
             title:      t.title,
             category:   t.category,
             recurrence: t.recurrence,
-            points:     t.points,
           }),
         ),
       )

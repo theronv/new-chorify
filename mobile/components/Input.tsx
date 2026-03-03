@@ -7,7 +7,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native'
-import { Colors } from '@/constants/colors'
+import { Colors, Radius } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 
 interface InputProps extends TextInputProps {
@@ -57,12 +57,13 @@ const styles = StyleSheet.create({
     fontFamily: Font.medium,
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginBottom: 6,
+    marginBottom: 8,
+    letterSpacing: 0.1,
   },
   input: {
     height: 52,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
+    backgroundColor: Colors.background,
+    borderRadius: Radius.md,
     borderWidth: 1.5,
     borderColor: Colors.border,
     paddingHorizontal: 16,
@@ -72,6 +73,7 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     borderColor: Colors.primary,
+    backgroundColor: Colors.surface,
   },
   inputError: {
     borderColor: Colors.danger,

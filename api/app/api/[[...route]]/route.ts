@@ -67,7 +67,7 @@ app.route('/cron', cronRoutes)
 app.notFound(c => c.json({ error: 'Not found' }, 404))
 
 app.onError((err, c) => {
-  console.error('[keptt-api]', err)
+  console.error('[chorify-api]', err)
   return c.json({ error: 'Internal server error' }, 500)
 })
 

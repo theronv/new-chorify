@@ -401,7 +401,6 @@ const CreateTaskSchema = z.object({
   title:      z.string().min(1).max(100).trim(),
   category:   z.string().min(1).max(100).default('home'),
   recurrence: z.enum(RECURRENCES).default('weekly'),
-  points:     z.number().int().min(1).max(100).default(10),
   assignedTo: z.string().nullable().optional(),
   roomId:     z.string().nullable().optional(),
   notes:      z.string().max(500).optional(),
@@ -420,9 +419,9 @@ households.post('/:id/tasks', requireAuth, zValidator('json', CreateTaskSchema),
   const nextDue = todayISO()
 
   await getDb().execute({
-    sql: `INSERT INTO tasks (id, household_id, title, category, recurrence, points, assigned_to, room_id, next_due, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [taskId, householdId, body.title, body.category, body.recurrence, body.points, body.assignedTo ?? null, body.roomId ?? null, nextDue, body.notes ?? null],
+    sql: `INSERT INTO tasks (id, household_id, title, category, recurrence, assigned_to, room_id, next_due, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [taskId, householdId, body.title, body.category, body.recurrence, body.assignedTo ?? null, body.roomId ?? null, nextDue, body.notes ?? null],
   })
 
   return c.json(
@@ -433,7 +432,6 @@ households.post('/:id/tasks', requireAuth, zValidator('json', CreateTaskSchema),
         title:        body.title,
         category:     body.category,
         recurrence:   body.recurrence,
-        points:       body.points,
         assigned_to:  body.assignedTo ?? null,
         room_id:      body.roomId ?? null,
         next_due:     nextDue,

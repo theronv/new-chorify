@@ -9,10 +9,15 @@ import { todayISO } from '../utils'
 
 const cron = new Hono()
 
+type ExpoPushTicket =
+  | { status: 'ok'; id: string }
+  | { status: 'error'; message: string; details?: { error?: string } }
+
 // ── GET /api/cron/notifications ───────────────────────────────────────────────
 // Finds every non-child member with a push token who has at least one task due
 // today or overdue that they haven't already completed today.
 // Sends a single grouped notification per member via Expo's Push API.
+// Dead tokens (DeviceNotRegistered) are nulled out after each send batch.
 
 cron.get('/notifications', requireCron, async (c) => {
   const db = getDb()
@@ -49,48 +54,80 @@ cron.get('/notifications', requireCron, async (c) => {
     return c.json({ sent: 0, message: 'No pending notifications' })
   }
 
-  // Build Expo push messages (one per member, grouped by due count)
-  const messages = result.rows.map(row => ({
-    to: row.push_token as string,
-    title: 'Keptt',
-    body:
-      (row.due_count as number) === 1
-        ? 'You have a chore due today'
-        : `You have ${row.due_count} chores due today`,
-    data: { screen: 'today' },
-    sound: 'default' as const,
-    badge: row.due_count as number,
+  // Pair each message with its member ID so we can map ticket results back
+  const rows = result.rows.map(row => ({
+    memberId:  row.member_id  as string,
+    pushToken: row.push_token as string,
+    dueCount:  row.due_count  as number,
   }))
 
   // Expo Push API accepts up to 100 messages per request
   let sent = 0
-  const errors: unknown[] = []
+  const errors: string[] = []
+  const deadMemberIds: string[] = []
 
-  for (let i = 0; i < messages.length; i += 100) {
-    const batch = messages.slice(i, i + 100)
+  for (let i = 0; i < rows.length; i += 100) {
+    const batch = rows.slice(i, i + 100)
+    const messages = batch.map(r => ({
+      to:    r.pushToken,
+      title: 'Chorify',
+      body:
+        r.dueCount === 1
+          ? 'You have a chore due today'
+          : `You have ${r.dueCount} chores due today`,
+      data:  { screen: 'today' },
+      sound: 'default' as const,
+      badge: r.dueCount,
+    }))
+
     try {
       const res = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          'Accept':       'application/json',
         },
-        body: JSON.stringify(batch),
+        body: JSON.stringify(messages),
       })
-      if (res.ok) {
-        sent += batch.length
-      } else {
-        errors.push(await res.text())
+
+      if (!res.ok) {
+        errors.push(`HTTP ${res.status}: ${await res.text()}`)
+        continue
       }
+
+      const body = await res.json() as { data: ExpoPushTicket[] }
+      body.data.forEach((ticket, idx) => {
+        if (ticket.status === 'ok') {
+          sent++
+        } else {
+          errors.push(`${batch[idx].memberId}: ${ticket.message}`)
+          // DeviceNotRegistered means the token is permanently dead —
+          // null it out so we stop sending to this device
+          if (ticket.details?.error === 'DeviceNotRegistered') {
+            deadMemberIds.push(batch[idx].memberId)
+          }
+        }
+      })
     } catch (err) {
       errors.push(String(err))
     }
   }
 
+  // Remove dead push tokens from the database
+  if (deadMemberIds.length) {
+    await db.batch(
+      deadMemberIds.map(id => ({
+        sql:  'UPDATE members SET push_token = NULL WHERE id = ?',
+        args: [id],
+      })),
+    )
+  }
+
   return c.json({
     sent,
-    total: messages.length,
-    ...(errors.length ? { errors } : {}),
+    total: rows.length,
+    ...(deadMemberIds.length ? { tokensRemoved: deadMemberIds.length } : {}),
+    ...(errors.length        ? { errors }                              : {}),
   })
 })
 

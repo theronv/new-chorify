@@ -15,7 +15,7 @@ import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { households as householdsApi, tasks as tasksApi } from '@/lib/api'
 import { useAuthStore, useHouseholdStore } from '@/lib/store'
-import { tasksToCSV, parseTaskRows } from '@/lib/csv'
+import { CSV_HEADERS, tasksToCSV, parseTaskRows } from '@/lib/csv'
 import type { ParsedTaskRow } from '@/lib/csv'
 import { Colors } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
@@ -37,19 +37,18 @@ export default function CsvScreen() {
   const tasks       = useHouseholdStore((s) => s.tasks)
   const rooms       = useHouseholdStore((s) => s.rooms)
   const members     = useHouseholdStore((s) => s.members)
+  const categories  = useHouseholdStore((s) => s.categories)
   const addTask     = useHouseholdStore((s) => s.addTask)
   const updateTask  = useHouseholdStore((s) => s.updateTask)
+  const addCategory = useHouseholdStore((s) => s.addCategory)
+  const addRoom     = useHouseholdStore((s) => s.addRoom)
 
   const [exporting,   setExporting]   = useState(false)
+  const [templating,  setTemplating]  = useState(false)
   const [importing,   setImporting]   = useState(false)
   const [lastResult,  setLastResult]  = useState<ImportResult | null>(null)
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-
-  function roomIdByName(name: string): string | undefined {
-    if (!name) return undefined
-    return rooms.find((r) => r.name.toLowerCase() === name.toLowerCase())?.id
-  }
 
   function memberIdByName(name: string): string | undefined {
     if (!name) return undefined
@@ -91,6 +90,47 @@ export default function CsvScreen() {
       console.error('[CSV] Export error:', e)
     } finally {
       setExporting(false)
+    }
+  }
+
+  // ── Template ─────────────────────────────────────────────────────────────────
+
+  async function handleTemplate() {
+    setTemplating(true)
+    try {
+      // Use a date 7 days from now as a realistic next_due example
+      const soon = new Date()
+      soon.setDate(soon.getDate() + 7)
+      const exampleDate = soon.toISOString().slice(0, 10)
+
+      const rows = [
+        CSV_HEADERS.join(','),
+        `,Vacuum living room,home,weekly,Living Room,,${exampleDate},`,
+        `,Clean bathrooms,health,weekly,Bathroom,,${exampleDate},`,
+        `,Mow the lawn,outdoor,monthly,Garden,,${exampleDate},Don't forget the edges`,
+      ]
+
+      const fileUri = `${FileSystem.cacheDirectory}chorify-import-template.csv`
+      await FileSystem.writeAsStringAsync(fileUri, rows.join('\r\n'), {
+        encoding: FileSystem.EncodingType.UTF8,
+      })
+
+      const canShare = await Sharing.isAvailableAsync()
+      if (!canShare) {
+        Alert.alert('Sharing unavailable', 'File written to app cache — connect a device to retrieve it.')
+        return
+      }
+
+      await Sharing.shareAsync(fileUri, {
+        mimeType:    'text/csv',
+        dialogTitle: 'Save Template',
+        UTI:         'public.comma-separated-values-text',
+      })
+    } catch (e) {
+      Alert.alert('Failed', 'Could not generate the template.')
+      console.error('[CSV] Template error:', e)
+    } finally {
+      setTemplating(false)
     }
   }
 
@@ -149,30 +189,90 @@ export default function CsvScreen() {
       return
     }
 
+    // Collect unknown categories and rooms that need to be created first
+    const knownCategories = new Set(categories.map((c) => c.name.toLowerCase()))
+    const knownRooms      = new Set(rooms.map((r) => r.name.toLowerCase()))
+
+    const newCategoryNames = [
+      ...new Set(
+        valid
+          .map((r) => r.category)
+          .filter((c) => c && !knownCategories.has(c.toLowerCase())),
+      ),
+    ]
+    const newRoomNames = [
+      ...new Set(
+        valid
+          .map((r) => r.room)
+          .filter((r) => r && !knownRooms.has(r.toLowerCase())),
+      ),
+    ]
+
     const lines: string[] = []
-    if (toCreate.length) lines.push(`Create ${toCreate.length} new task${toCreate.length !== 1 ? 's' : ''}`)
-    if (toUpdate.length) lines.push(`Update ${toUpdate.length} existing task${toUpdate.length !== 1 ? 's' : ''}`)
-    if (invalid.length)  lines.push(`Skip ${invalid.length} invalid row${invalid.length !== 1 ? 's' : ''}`)
+    if (toCreate.length)         lines.push(`Create ${toCreate.length} new task${toCreate.length !== 1 ? 's' : ''}`)
+    if (toUpdate.length)         lines.push(`Update ${toUpdate.length} existing task${toUpdate.length !== 1 ? 's' : ''}`)
+    if (invalid.length)          lines.push(`Skip ${invalid.length} invalid row${invalid.length !== 1 ? 's' : ''}`)
+    if (newCategoryNames.length) lines.push(`Create ${newCategoryNames.length} new categor${newCategoryNames.length !== 1 ? 'ies' : 'y'}`)
+    if (newRoomNames.length)     lines.push(`Create ${newRoomNames.length} new room${newRoomNames.length !== 1 ? 's' : ''}`)
 
     Alert.alert('Confirm import', lines.join('\n'), [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Import',
-        onPress: () => executeImport(toCreate, toUpdate, invalid.length, householdId),
+        onPress: () => executeImport(toCreate, toUpdate, invalid.length, householdId, newCategoryNames, newRoomNames),
       },
     ])
   }
 
   async function executeImport(
-    toCreate:  ParsedTaskRow[],
-    toUpdate:  ParsedTaskRow[],
-    skipped:   number,
-    hid:       string,
+    toCreate:         ParsedTaskRow[],
+    toUpdate:         ParsedTaskRow[],
+    skipped:          number,
+    hid:              string,
+    newCategoryNames: string[],
+    newRoomNames:     string[],
   ) {
     setImporting(true)
     let created = 0
     let updated = 0
     let failed  = 0
+
+    // Build a mutable room-name → id map seeded from the current store.
+    // We update it as new rooms are created so task rows can reference them
+    // immediately without waiting for a React state re-render.
+    const roomMap = new Map(rooms.map((r) => [r.name.toLowerCase(), r.id]))
+
+    // Auto-create missing categories
+    if (newCategoryNames.length) {
+      const catResults = await Promise.allSettled(
+        newCategoryNames.map((name) =>
+          householdsApi.createCategory(hid, { name, emoji: '📦' }),
+        ),
+      )
+      catResults.forEach((res) => {
+        if (res.status === 'fulfilled') addCategory(res.value.category)
+      })
+    }
+
+    // Auto-create missing rooms and populate the local map
+    if (newRoomNames.length) {
+      const roomResults = await Promise.allSettled(
+        newRoomNames.map((name) =>
+          householdsApi.createRoom(hid, { name, emoji: '🏠' }),
+        ),
+      )
+      roomResults.forEach((res, i) => {
+        if (res.status === 'fulfilled') {
+          addRoom(res.value.room)
+          roomMap.set(newRoomNames[i].toLowerCase(), res.value.room.id)
+        }
+      })
+    }
+
+    function resolveRoomId(name: string): string | undefined {
+      if (!name) return undefined
+      return roomMap.get(name.toLowerCase())
+    }
 
     const createResults = await Promise.allSettled(
       toCreate.map((r) =>
@@ -180,8 +280,7 @@ export default function CsvScreen() {
           title:      r.title,
           category:   r.category  as Category,
           recurrence: r.recurrence as Recurrence,
-          points:     r.points,
-          roomId:     roomIdByName(r.room),
+          roomId:     resolveRoomId(r.room),
           assignedTo: memberIdByName(r.assignedTo),
           nextDue:    r.nextDue   || undefined,
           notes:      r.notes     || undefined,
@@ -200,8 +299,7 @@ export default function CsvScreen() {
           title:      r.title,
           category:   r.category  as Category,
           recurrence: r.recurrence as Recurrence,
-          points:     r.points,
-          roomId:     roomIdByName(r.room)     ?? null,
+          roomId:     resolveRoomId(r.room)        ?? null,
           assignedTo: memberIdByName(r.assignedTo) ?? null,
           nextDue:    r.nextDue || null,
           notes:      r.notes   || null,
@@ -279,7 +377,7 @@ export default function CsvScreen() {
         <Text style={styles.sectionLabel}>Import</Text>
         <View style={styles.card}>
           <Text style={styles.cardDesc}>
-            Select a CSV file from your device. Rows whose <Text style={styles.inlineCode}>id</Text> matches an existing task will update it — all other rows create new tasks.
+            Select a CSV file from your device. Rows whose <Text style={styles.inlineCode}>id</Text> matches an existing task will update it — all other rows create new tasks. Unknown categories and rooms are created automatically.
           </Text>
           <View style={styles.divider} />
           <TouchableOpacity
@@ -294,6 +392,22 @@ export default function CsvScreen() {
               <>
                 <Text style={styles.actionLabel}>Import from CSV</Text>
                 <Text style={styles.actionArrow}>↓</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.actionRow}
+            onPress={handleTemplate}
+            disabled={templating}
+            activeOpacity={0.7}
+          >
+            {templating ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <>
+                <Text style={styles.templateLabel}>Download Template</Text>
+                <Text style={styles.templateArrow}>⬇</Text>
               </>
             )}
           </TouchableOpacity>
@@ -337,8 +451,7 @@ export default function CsvScreen() {
             <Text style={styles.formatBody}>
               <Text style={styles.inlineCode}>title</Text>{'  '}
               <Text style={styles.inlineCode}>category</Text>{'  '}
-              <Text style={styles.inlineCode}>recurrence</Text>{'  '}
-              <Text style={styles.inlineCode}>points</Text>
+              <Text style={styles.inlineCode}>recurrence</Text>
             </Text>
           </View>
 
@@ -358,15 +471,6 @@ export default function CsvScreen() {
           <View style={styles.divider} />
 
           <View style={styles.formatSection}>
-            <Text style={styles.formatHeading}>Valid categories</Text>
-            <Text style={styles.formatBody}>
-              home  ·  pet  ·  outdoor  ·  health  ·  family  ·  vehicle
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.formatSection}>
             <Text style={styles.formatHeading}>Valid recurrences</Text>
             <Text style={styles.formatBody}>
               daily  ·  weekly  ·  biweekly  ·  monthly{'\n'}
@@ -380,7 +484,8 @@ export default function CsvScreen() {
             <Text style={styles.formatHeading}>Notes</Text>
             <Text style={styles.formatBody}>
               {'• '}Dates use <Text style={styles.inlineCode}>YYYY-MM-DD</Text> format{'\n'}
-              {'• '}Room and member names must match exactly{'\n'}
+              {'• '}Unknown categories and rooms are created automatically{'\n'}
+              {'• '}Member names must match exactly{'\n'}
               {'• '}Fields with commas must be quoted
             </Text>
           </View>
@@ -431,7 +536,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius:    16,
     overflow:        'hidden',
-    shadowColor:     '#000',
+    shadowColor:     Colors.textPrimary,
     shadowOffset:    { width: 0, height: 2 },
     shadowOpacity:   0.05,
     shadowRadius:    8,
@@ -470,6 +575,16 @@ const styles = StyleSheet.create({
     fontFamily: Font.bold,
     fontSize:   18,
     color:      Colors.primary,
+  },
+  templateLabel: {
+    fontFamily: Font.medium,
+    fontSize:   FontSize.base,
+    color:      Colors.textSecondary,
+  },
+  templateArrow: {
+    fontFamily: Font.regular,
+    fontSize:   16,
+    color:      Colors.textSecondary,
   },
 
   // Result card

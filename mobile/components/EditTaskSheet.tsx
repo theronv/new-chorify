@@ -35,8 +35,6 @@ const RECURRENCES: { value: Recurrence; label: string }[] = [
   { value: 'once',      label: 'One-time' },
 ]
 
-const POINT_VALUES = [5, 10, 15, 20, 25]
-
 // Offset in days → display label
 const DUE_CHIPS: { label: string; days: number | null }[] = [
   { label: 'No date',  days: null },
@@ -51,7 +49,7 @@ const DUE_CHIPS: { label: string; days: number | null }[] = [
 function addDays(n: number): string {
   const d = new Date()
   d.setDate(d.getDate() + n)
-  return d.toISOString().slice(0, 10)
+  return d.toLocaleDateString('en-CA')
 }
 
 function chipDate(days: number | null): string | null {
@@ -80,7 +78,6 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
   const [roomId,       setRoomId]       = useState<string | null>(null)
   const [roomOpen,     setRoomOpen]     = useState(false)
   const [recurrence,   setRecurrence]   = useState<Recurrence>('weekly')
-  const [pointsIdx,    setPointsIdx]    = useState(1)
   const [assignedTo,   setAssignedTo]   = useState<string | null>(null)
   const [nextDue,          setNextDue]          = useState<string | null>(null)
   const [showCustomPicker, setShowCustomPicker] = useState(false)
@@ -98,12 +95,6 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
     setAssignedTo(task.assigned_to)
     setShowCustomPicker(false)
     setError(null)
-
-    // Snap points to nearest POINT_VALUES entry
-    const nearest = POINT_VALUES.reduce((prev, cur) =>
-      Math.abs(cur - task.points) < Math.abs(prev - task.points) ? cur : prev,
-    )
-    setPointsIdx(POINT_VALUES.indexOf(nearest) === -1 ? 1 : POINT_VALUES.indexOf(nearest))
   }, [task?.id, visible])
 
   const selectedCat  = categories.find((c) => c.name === category) ?? categories[0]
@@ -127,7 +118,6 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
         title:      title.trim(),
         category,
         recurrence,
-        points:     POINT_VALUES[pointsIdx],
         assignedTo: assignedTo ?? null,
         roomId:     roomId ?? null,
         nextDue:    nextDue ?? null,
@@ -136,7 +126,6 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
         title:       updated.title,
         category:    updated.category,
         recurrence:  updated.recurrence,
-        points:      updated.points,
         assigned_to: updated.assigned_to,
         room_id:     updated.room_id,
         next_due:    updated.next_due,
@@ -340,29 +329,6 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                 ))}
               </ScrollView>
 
-              {/* Points stepper */}
-              <Text style={styles.fieldLabel}>Points</Text>
-              <View style={styles.stepper}>
-                <TouchableOpacity
-                  style={[styles.stepBtn, pointsIdx === 0 && styles.stepBtnDisabled]}
-                  onPress={() => setPointsIdx((i) => Math.max(0, i - 1))}
-                  disabled={pointsIdx === 0}
-                >
-                  <Text style={styles.stepBtnText}>−</Text>
-                </TouchableOpacity>
-                <View style={styles.stepValue}>
-                  <Text style={styles.stepValueText}>{POINT_VALUES[pointsIdx]}</Text>
-                  <Text style={styles.stepValueUnit}>pts</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.stepBtn, pointsIdx === POINT_VALUES.length - 1 && styles.stepBtnDisabled]}
-                  onPress={() => setPointsIdx((i) => Math.min(POINT_VALUES.length - 1, i + 1))}
-                  disabled={pointsIdx === POINT_VALUES.length - 1}
-                >
-                  <Text style={styles.stepBtnText}>+</Text>
-                </TouchableOpacity>
-              </View>
-
               {/* Next due date */}
               <Text style={styles.fieldLabel}>Next due date</Text>
               <ScrollView
@@ -483,7 +449,7 @@ const styles = StyleSheet.create({
     paddingHorizontal:    20,
     paddingTop:           12,
     maxHeight:            '90%',
-    shadowColor:          '#000',
+    shadowColor:          Colors.textPrimary,
     shadowOffset:         { width: 0, height: -4 },
     shadowOpacity:        0.08,
     shadowRadius:         16,
@@ -636,46 +602,6 @@ const styles = StyleSheet.create({
 
   datePicker: {
     marginBottom: 12,
-  },
-
-  // Points stepper
-  stepper: {
-    flexDirection: 'row',
-    alignItems:    'center',
-    gap:           16,
-    marginBottom:  20,
-  },
-  stepBtn: {
-    width:           44,
-    height:          44,
-    borderRadius:    22,
-    backgroundColor: Colors.primaryLight,
-    alignItems:      'center',
-    justifyContent:  'center',
-  },
-  stepBtnDisabled: { opacity: 0.35 },
-  stepBtnText: {
-    fontFamily: Font.bold,
-    fontSize:   20,
-    color:      Colors.primary,
-    lineHeight: 24,
-  },
-  stepValue: {
-    flex:           1,
-    flexDirection:  'row',
-    alignItems:     'baseline',
-    justifyContent: 'center',
-    gap:            4,
-  },
-  stepValueText: {
-    fontFamily: Font.displayBold,
-    fontSize:   FontSize['2xl'],
-    color:      Colors.textPrimary,
-  },
-  stepValueUnit: {
-    fontFamily: Font.regular,
-    fontSize:   FontSize.base,
-    color:      Colors.textSecondary,
   },
 
   // Assignee

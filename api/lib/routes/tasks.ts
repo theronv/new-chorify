@@ -27,7 +27,6 @@ const UpdateTaskSchema = z.object({
   title:      z.string().min(1).max(100).trim().optional(),
   category:   z.string().min(1).max(100).optional(),
   recurrence: z.enum(RECURRENCES).optional(),
-  points:     z.number().int().min(1).max(100).optional(),
   assignedTo: z.string().nullable().optional(),
   roomId:     z.string().nullable().optional(),
   nextDue:    z.string().nullable().optional(), // YYYY-MM-DD or null
@@ -58,7 +57,6 @@ tasks.patch('/:id', requireAuth, zValidator('json', UpdateTaskSchema), async (c)
   if (body.title      !== undefined) { sets.push('title = ?');       args.push(body.title) }
   if (body.category   !== undefined) { sets.push('category = ?');    args.push(body.category) }
   if (body.recurrence !== undefined) { sets.push('recurrence = ?');  args.push(body.recurrence) }
-  if (body.points     !== undefined) { sets.push('points = ?');      args.push(body.points) }
   if ('assignedTo' in body)          { sets.push('assigned_to = ?'); args.push(body.assignedTo ?? null) }
   if ('roomId'     in body)          { sets.push('room_id = ?');     args.push(body.roomId ?? null) }
   if ('nextDue'    in body)          { sets.push('next_due = ?');    args.push(body.nextDue ?? null) }
@@ -109,7 +107,7 @@ tasks.post('/:id/complete', requireAuth, zValidator('json', CompleteSchema), asy
   const today = todayISO()
 
   const taskResult = await db.execute({
-    sql: 'SELECT id, household_id, points, recurrence, next_due FROM tasks WHERE id = ?',
+    sql: 'SELECT id, household_id, recurrence, next_due FROM tasks WHERE id = ?',
     args: [taskId],
   })
   const task = taskResult.rows[0]
@@ -122,7 +120,7 @@ tasks.post('/:id/complete', requireAuth, zValidator('json', CompleteSchema), asy
 
   // The completing member must belong to the same household
   const memberResult = await db.execute({
-    sql: 'SELECT id, points_total FROM members WHERE id = ? AND household_id = ?',
+    sql: 'SELECT id FROM members WHERE id = ? AND household_id = ?',
     args: [memberId, task.household_id],
   })
   const member = memberResult.rows[0]
@@ -136,23 +134,17 @@ tasks.post('/:id/complete', requireAuth, zValidator('json', CompleteSchema), asy
   if (dupCheck.rows.length) return c.json({ error: 'Already completed today' }, 409)
 
   const completionId = generateId()
-  const points = task.points as number
   const nextDue = calcNextDue(task.recurrence as string, task.next_due as string | null)
-  const newPointsTotal = (member.points_total as number) + points
 
-  // Batch the three writes atomically
+  // Batch the two writes atomically
   await db.batch([
     {
-      sql: 'INSERT INTO completions (id, task_id, member_id, household_id, completed_date, points) VALUES (?, ?, ?, ?, ?, ?)',
-      args: [completionId, taskId, memberId, task.household_id, today, points],
+      sql: 'INSERT INTO completions (id, task_id, member_id, household_id, completed_date) VALUES (?, ?, ?, ?, ?)',
+      args: [completionId, taskId, memberId, task.household_id, today],
     },
     {
       sql: 'UPDATE tasks SET next_due = ?, last_completed = ? WHERE id = ?',
       args: [nextDue, today, taskId],
-    },
-    {
-      sql: 'UPDATE members SET points_total = ? WHERE id = ?',
-      args: [newPointsTotal, memberId],
     },
   ])
 
@@ -162,9 +154,7 @@ tasks.post('/:id/complete', requireAuth, zValidator('json', CompleteSchema), asy
       task_id: taskId,
       member_id: memberId,
       completed_date: today,
-      points,
     },
-    newPointsTotal,
     nextDue,
   })
 })

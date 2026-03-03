@@ -55,7 +55,6 @@ export default function PacksSettingsScreen() {
             title:      t.title,
             category:   t.category,
             recurrence: t.recurrence,
-            points:     t.points,
           }),
         ),
       )
@@ -142,16 +141,11 @@ export default function PacksSettingsScreen() {
                       >
                         {task.title}
                       </Text>
-                      <View style={styles.taskRight}>
-                        <Text style={[styles.taskPts, alreadyAdded && styles.taskPtsDim]}>
-                          {task.points} pts
-                        </Text>
-                        {alreadyAdded && (
-                          <View style={styles.addedBadge}>
-                            <Text style={styles.addedBadgeText}>Added</Text>
-                          </View>
-                        )}
-                      </View>
+                      {alreadyAdded && (
+                        <View style={styles.addedBadge}>
+                          <Text style={styles.addedBadgeText}>Added</Text>
+                        </View>
+                      )}
                     </View>
                   )
                 })}
@@ -223,7 +217,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
     borderRadius:    18,
     overflow:        'hidden',
-    shadowColor:     '#000',
+    shadowColor:     Colors.textPrimary,
     shadowOffset:    { width: 0, height: 2 },
     shadowOpacity:   0.05,
     shadowRadius:    8,

@@ -1,4 +1,4 @@
-// ── Keptt push notifications + background fetch ───────────────────────────────
+// ── Chorify push notifications + background fetch ─────────────────────────────
 // This module is always imported (Metro bundles statically), but all side
 // effects and native calls are guarded by IS_EXPO_GO so the app runs cleanly
 // in Expo Go. Push notifications require an EAS development build.
@@ -7,6 +7,7 @@ import * as BackgroundFetch from 'expo-background-fetch'
 import Constants from 'expo-constants'
 import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
+import * as SecureStore from 'expo-secure-store'
 import * as TaskManager from 'expo-task-manager'
 import { getStoredTokens, households as householdsApi } from '@/lib/api'
 
@@ -19,6 +20,53 @@ import { getStoredTokens, households as householdsApi } from '@/lib/api'
 export const IS_EXPO_GO = Constants.appOwnership === 'expo'
 
 export const BACKGROUND_FETCH_TASK = 'keptt-background-fetch'
+
+// ── Notification preference ───────────────────────────────────────────────────
+
+export type NotificationPref = 'task' | 'daily' | 'none'
+
+export const NOTIF_PREF_KEY    = 'chorify.notif_pref'
+export const DAILY_NOTIF_ID    = 'chorify-daily-summary'
+export const PUSH_TOKEN_CACHE_KEY = 'chorify.push_token'
+
+export async function getNotifPref(): Promise<NotificationPref> {
+  try {
+    const val = await SecureStore.getItemAsync(NOTIF_PREF_KEY)
+    if (val === 'task' || val === 'daily' || val === 'none') return val
+  } catch {}
+  return 'task'
+}
+
+export async function saveNotifPref(pref: NotificationPref): Promise<void> {
+  await SecureStore.setItemAsync(NOTIF_PREF_KEY, pref)
+}
+
+/**
+ * Schedule (or reschedule) the daily 8am summary notification.
+ * Cancels any existing instance first so only one is ever pending.
+ */
+export async function scheduleDailySummary(dueCount: number): Promise<void> {
+  if (IS_EXPO_GO) return
+  await Notifications.cancelScheduledNotificationAsync(DAILY_NOTIF_ID).catch(() => {})
+  const body =
+    dueCount === 0
+      ? 'All caught up — no tasks due today.'
+      : `You have ${dueCount} task${dueCount !== 1 ? 's' : ''} due today.`
+  await Notifications.scheduleNotificationAsync({
+    identifier: DAILY_NOTIF_ID,
+    content: { title: 'Chorify', body },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 8,
+      minute: 0,
+    },
+  })
+}
+
+export async function cancelDailySummary(): Promise<void> {
+  if (IS_EXPO_GO) return
+  await Notifications.cancelScheduledNotificationAsync(DAILY_NOTIF_ID).catch(() => {})
+}
 
 // ── Foreground notification handler ──────────────────────────────────────────
 // Only configure in builds that support push notifications.
@@ -51,6 +99,13 @@ function decodeJwtClaims(token: string): { hid?: string | null } | null {
 if (!IS_EXPO_GO) {
   TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
     try {
+      const pref = await getNotifPref()
+
+      if (pref === 'none') {
+        await Notifications.setBadgeCountAsync(0)
+        return BackgroundFetch.BackgroundFetchResult.NoData
+      }
+
       const stored = await getStoredTokens()
       if (!stored) return BackgroundFetch.BackgroundFetchResult.NoData
 
@@ -63,16 +118,20 @@ if (!IS_EXPO_GO) {
         householdsApi.completions(householdId),
       ])
 
-      const today = new Date().toISOString().slice(0, 10)
-      const overdueCount = tasks.filter((t) => {
+      const today    = new Date().toISOString().slice(0, 10)
+      const dueCount = tasks.filter((t) => {
         if (!t.next_due || t.next_due > today) return false
         return !completions.some(
           (c) => c.task_id === t.id && c.completed_date === today,
         )
       }).length
 
-      await Notifications.setBadgeCountAsync(overdueCount)
-      console.log('[BG] Badge set to', overdueCount)
+      if (pref === 'daily') {
+        await scheduleDailySummary(dueCount)
+      }
+
+      await Notifications.setBadgeCountAsync(dueCount)
+      console.log('[BG] Badge set to', dueCount)
       return BackgroundFetch.BackgroundFetchResult.NewData
     } catch (e) {
       console.warn('[BG] Background fetch failed:', e)

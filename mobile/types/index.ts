@@ -1,4 +1,4 @@
-// ── Keptt shared TypeScript types ─────────────────────────────────────────────
+// ── Chorify shared TypeScript types ───────────────────────────────────────────
 // Mirrors the Turso DB schema (TURSO_SCHEMA.sql)
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -51,7 +51,6 @@ export interface Member {
   emoji:        string
   is_child:     0 | 1
   parent_id:    string | null
-  points_total: number
   push_token:   string | null
   avatar_url:   string | null  // base64 data URI, stored directly in Turso
   created_at:   string
@@ -96,7 +95,6 @@ export interface Task {
   title:          string
   category:       Category
   recurrence:     Recurrence
-  points:         number
   assigned_to:    string | null  // member id
   room_id:        string | null  // room id
   next_due:       string | null  // YYYY-MM-DD
@@ -114,7 +112,6 @@ export interface Completion {
   household_id:   string
   completed_date: string  // YYYY-MM-DD
   completed_at:   string  // ISO timestamp
-  points:         number
 }
 
 // ── Rewards ───────────────────────────────────────────────────────────────────
@@ -122,10 +119,9 @@ export interface Completion {
 export interface Reward {
   id:              string
   household_id:    string
-  title:           string
-  emoji:           string
-  points_required: number
-  assigned_to:     string | null  // member id
+  title:       string
+  emoji:       string
+  assigned_to: string | null  // member id
   created_at:      string
 }
 
@@ -143,7 +139,6 @@ export interface CreateTaskRequest {
   title:       string
   category:    Category
   recurrence:  Recurrence
-  points:      number
   assignedTo?: string
   roomId?:     string
   nextDue?:    string
@@ -154,7 +149,6 @@ export interface UpdateTaskRequest {
   title?:      string
   category?:   Category
   recurrence?: Recurrence
-  points?:     number
   assignedTo?: string | null
   roomId?:     string | null
   nextDue?:    string | null  // YYYY-MM-DD
@@ -188,16 +182,14 @@ export interface CreateMemberRequest {
 }
 
 export interface CreateRewardRequest {
-  title:          string
-  emoji:          string
-  pointsRequired: number
-  assignedTo?:    string
+  title:      string
+  emoji:      string
+  assignedTo?: string
 }
 
 export interface TaskCompleteResponse {
   /** Partial completion — household_id and completed_at are not returned by the server */
-  completion: Pick<Completion, 'id' | 'task_id' | 'member_id' | 'completed_date' | 'points'>
-  newPointsTotal: number
+  completion: Pick<Completion, 'id' | 'task_id' | 'member_id' | 'completed_date'>
   nextDue: string | null
 }
 
