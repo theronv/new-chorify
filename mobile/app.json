@@ -4,7 +4,7 @@
     "slug": "chorify",
     "scheme": "chorify",
     "version": "1.0.0",
-    "orientation": "all",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
