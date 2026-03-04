@@ -57,7 +57,10 @@ export function calcNextDue(recurrence: string, fromDate?: string | null): strin
       case 'quarterly': next.setUTCMonth(next.getUTCMonth() + 3);        break
       case 'biannual':  next.setUTCMonth(next.getUTCMonth() + 6);        break
       case 'annual':    next.setUTCFullYear(next.getUTCFullYear() + 1);  break
-      default:          next.setUTCDate(next.getUTCDate() + 7)
+      default: {
+        const m = recurrence.match(/^every_(\d+)_days$/)
+        next.setUTCDate(next.getUTCDate() + (m ? parseInt(m[1], 10) : 7))
+      }
     }
     return next
   }

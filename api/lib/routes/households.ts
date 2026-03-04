@@ -51,6 +51,10 @@ const RECURRENCES = [
   'daily', 'weekly', 'biweekly', 'monthly',
   'quarterly', 'biannual', 'annual', 'once',
 ] as const
+const recurrenceSchema = z.string().refine(
+  v => (RECURRENCES as readonly string[]).includes(v) || /^every_\d+_days$/.test(v),
+  { message: 'Invalid recurrence' },
+)
 
 // ── POST /api/households — create ─────────────────────────────────────────────
 
@@ -382,15 +386,15 @@ households.post('/:id/categories', requireAuth, zValidator('json', CreateCategor
 
 households.get('/:id/tasks', requireAuth, async (c) => {
   const householdId = c.req.param('id')
-  const { sub: userId } = c.get('token')
+  const { sub: userId, mid: memberId } = c.get('token')
 
   if (!(await getMemberId(userId, householdId))) {
     return c.json({ error: 'Not a member of this household' }, 403)
   }
 
   const result = await getDb().execute({
-    sql: 'SELECT * FROM tasks WHERE household_id = ? ORDER BY next_due ASC',
-    args: [householdId],
+    sql: 'SELECT * FROM tasks WHERE household_id = ? AND (is_private = 0 OR owner_member_id = ?) ORDER BY next_due ASC',
+    args: [householdId, memberId ?? ''],
   })
   return c.json({ tasks: result.rows })
 })
@@ -400,10 +404,11 @@ households.get('/:id/tasks', requireAuth, async (c) => {
 const CreateTaskSchema = z.object({
   title:      z.string().min(1).max(100).trim(),
   category:   z.string().min(1).max(100).default('home'),
-  recurrence: z.enum(RECURRENCES).default('weekly'),
+  recurrence: recurrenceSchema.default('weekly'),
   assignedTo: z.string().nullable().optional(),
   roomId:     z.string().nullable().optional(),
   notes:      z.string().max(500).optional(),
+  isPrivate:  z.boolean().default(false),
 })
 
 households.post('/:id/tasks', requireAuth, zValidator('json', CreateTaskSchema), async (c) => {
@@ -411,7 +416,8 @@ households.post('/:id/tasks', requireAuth, zValidator('json', CreateTaskSchema),
   const { sub: userId } = c.get('token')
   const body = c.req.valid('json')
 
-  if (!(await getMemberId(userId, householdId))) {
+  const memberIdForTask = await getMemberId(userId, householdId)
+  if (!memberIdForTask) {
     return c.json({ error: 'Not a member of this household' }, 403)
   }
 
@@ -419,23 +425,25 @@ households.post('/:id/tasks', requireAuth, zValidator('json', CreateTaskSchema),
   const nextDue = todayISO()
 
   await getDb().execute({
-    sql: `INSERT INTO tasks (id, household_id, title, category, recurrence, assigned_to, room_id, next_due, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    args: [taskId, householdId, body.title, body.category, body.recurrence, body.assignedTo ?? null, body.roomId ?? null, nextDue, body.notes ?? null],
+    sql: `INSERT INTO tasks (id, household_id, title, category, recurrence, assigned_to, room_id, next_due, notes, is_private, owner_member_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [taskId, householdId, body.title, body.category, body.recurrence, body.assignedTo ?? null, body.roomId ?? null, nextDue, body.notes ?? null, body.isPrivate ? 1 : 0, memberIdForTask],
   })
 
   return c.json(
     {
       task: {
-        id:           taskId,
-        household_id: householdId,
-        title:        body.title,
-        category:     body.category,
-        recurrence:   body.recurrence,
-        assigned_to:  body.assignedTo ?? null,
-        room_id:      body.roomId ?? null,
-        next_due:     nextDue,
-        notes:        body.notes ?? null,
+        id:               taskId,
+        household_id:     householdId,
+        title:            body.title,
+        category:         body.category,
+        recurrence:       body.recurrence,
+        assigned_to:      body.assignedTo ?? null,
+        room_id:          body.roomId ?? null,
+        next_due:         nextDue,
+        notes:            body.notes ?? null,
+        is_private:       body.isPrivate ? 1 : 0,
+        owner_member_id:  memberIdForTask,
       },
     },
     201,

@@ -1,50 +1,53 @@
 // ── Chorify design system colors ──────────────────────────────────────────────
 
 export const Colors = {
-  // Brand
-  primary:        '#5B6EF5', // indigo — main action color
-  primaryLight:   '#EEF0FE', // tinted background for cards
-  primaryDark:    '#3A4ED4',
+  // Brand — deep teal
+  primary:        '#486966',
+  primaryLight:   '#EAF0EF', // tinted teal background for selected states
+  primaryDark:    '#2E4542',
 
-  // Accent / points
-  gold:           '#F5A623',
-  goldLight:      '#FEF3DC',
+  // Accent — red
+  accent:         '#BD2A2E',
+
+  // Points / gamification
+  gold:           '#C8902A',
+  goldLight:      '#F5EDD8',
 
   // Semantic
-  success:        '#34C759', // green — completed
-  successLight:   '#E8F8ED',
-  warning:        '#FF9500', // orange — due soon
-  warningLight:   '#FFF3E0',
-  danger:         '#FF3B30', // red — overdue
-  dangerLight:    '#FFECEB',
+  success:        '#3D8B6C', // muted forest green — completed
+  successLight:   '#E4F0EB',
+  warning:        '#C87D2A', // warm amber — due soon
+  warningLight:   '#F5ECD6',
+  danger:         '#BD2A2E', // red — overdue
+  dangerLight:    '#F5E6E6',
 
   // Neutrals
-  background:     '#F5F7FF',
+  background:     '#F4F2F0', // warm off-white
   surface:        '#FFFFFF',
-  surfaceRaised:  '#FFFFFF', // card with shadow
-  border:         '#E8EAFF',
-  borderSubtle:   '#F0F2FF',
+  surfaceRaised:  '#FFFFFF',
+  border:         '#C8D4D4', // muted teal-gray
+  borderSubtle:   '#E2EEEE', // very light teal
 
   // Text
-  textPrimary:    '#1A1D3B',
-  textSecondary:  '#6B7280',
-  textTertiary:   '#9CA3AF',
+  textPrimary:    '#3B3936', // dark charcoal
+  textSecondary:  '#889C9B', // muted sage
+  textTertiary:   '#B2BEBF', // light gray-blue
   textOnPrimary:  '#FFFFFF',
-  textOnGold:     '#7A4F00',
+  textOnGold:     '#5C3800',
 
   // Tab bar
-  tabActive:      '#5B6EF5',
-  tabInactive:    '#9CA3AF',
+  tabActive:      '#486966',
+  tabInactive:    '#889C9B',
   tabBackground:  '#FFFFFF',
 
   // Category badge colors (legacy static map — kept for reference)
   category: {
-    home:    { bg: '#EEF0FE', text: '#5B6EF5' },
-    pet:     { bg: '#FFF7ED', text: '#C2410C' },
-    outdoor: { bg: '#E8F8ED', text: '#15803D' },
-    health:  { bg: '#FCE7F3', text: '#9D174D' },
-    family:  { bg: '#FEF3DC', text: '#B45309' },
-    vehicle: { bg: '#F0F9FF', text: '#0369A1' },
+    home:    { bg: '#E4EEEE', text: '#486966' },
+    pet:     { bg: '#F5EEEA', text: '#8B4513' },
+    outdoor: { bg: '#E6EFEA', text: '#2D6A4F' },
+    health:  { bg: '#F2E8EC', text: '#823050' },
+    family:  { bg: '#F0EAE0', text: '#7A5C1A' },
+    vehicle: { bg: '#E4EEF2', text: '#1E6080' },
   },
 } as const
 
@@ -54,14 +57,14 @@ export type ColorKey = keyof typeof Colors
 // Assign colors by sort_order % palette length.
 // Indices 0–5 intentionally match the legacy Colors.category entries above.
 export const CATEGORY_COLORS: { bg: string; text: string }[] = [
-  { bg: '#EEF0FE', text: '#5B6EF5' }, // 0: indigo  (home)
-  { bg: '#FFF7ED', text: '#C2410C' }, // 1: orange  (pet)
-  { bg: '#E8F8ED', text: '#15803D' }, // 2: green   (outdoor)
-  { bg: '#FCE7F3', text: '#9D174D' }, // 3: pink    (health)
-  { bg: '#FEF3DC', text: '#B45309' }, // 4: amber   (family)
-  { bg: '#F0F9FF', text: '#0369A1' }, // 5: sky     (vehicle)
-  { bg: '#F3E8FF', text: '#7E22CE' }, // 6: purple
-  { bg: '#FFF1F2', text: '#BE123C' }, // 7: rose
+  { bg: '#E4EEEE', text: '#486966' }, // 0: teal    (home)
+  { bg: '#F5EEEA', text: '#8B4513' }, // 1: brown   (pet)
+  { bg: '#E6EFEA', text: '#2D6A4F' }, // 2: forest  (outdoor)
+  { bg: '#F2E8EC', text: '#823050' }, // 3: rose    (health)
+  { bg: '#F0EAE0', text: '#7A5C1A' }, // 4: amber   (family)
+  { bg: '#E4EEF2', text: '#1E6080' }, // 5: steel   (vehicle)
+  { bg: '#ECE8F2', text: '#5E408A' }, // 6: muted purple
+  { bg: '#F2E8E8', text: '#BD2A2E' }, // 7: red accent
 ]
 
 /**
@@ -73,11 +76,11 @@ export function getCategoryColor(sortOrder: number): { bg: string; text: string 
 }
 
 // ── Shadow presets ────────────────────────────────────────────────────────────
-// Uses the dark text color as shadow base (blue-tinted, softer than pure #000)
+// Uses the dark charcoal as shadow base (warm-tinted, softer than pure #000)
 export const Shadows = {
   /** Subtle lift — task cards, list items */
   sm: {
-    shadowColor:   '#1A1D3B',
+    shadowColor:   '#3B3936',
     shadowOffset:  { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius:  6,
@@ -85,7 +88,7 @@ export const Shadows = {
   },
   /** Standard card depth */
   card: {
-    shadowColor:   '#1A1D3B',
+    shadowColor:   '#3B3936',
     shadowOffset:  { width: 0, height: 3 },
     shadowOpacity: 0.08,
     shadowRadius:  14,
@@ -93,7 +96,7 @@ export const Shadows = {
   },
   /** Modals, sheets, overlaid UI */
   md: {
-    shadowColor:   '#1A1D3B',
+    shadowColor:   '#3B3936',
     shadowOffset:  { width: 0, height: 6 },
     shadowOpacity: 0.11,
     shadowRadius:  20,
@@ -101,7 +104,7 @@ export const Shadows = {
   },
   /** Deep popups, pickers */
   lg: {
-    shadowColor:   '#1A1D3B',
+    shadowColor:   '#3B3936',
     shadowOffset:  { width: 0, height: 10 },
     shadowOpacity: 0.15,
     shadowRadius:  30,
@@ -109,7 +112,7 @@ export const Shadows = {
   },
   /** Coloured glow for primary action buttons */
   button: {
-    shadowColor:   '#5B6EF5',
+    shadowColor:   '#486966',
     shadowOffset:  { width: 0, height: 4 },
     shadowOpacity: 0.30,
     shadowRadius:  12,

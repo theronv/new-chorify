@@ -181,7 +181,7 @@ export default function TasksScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <View style={styles.headerTop}>
           <View style={styles.titleRow}>
-            <Image source={require('@/assets/icon.png')} style={styles.logo} />
+            <Image source={require('@/assets/AppIcon@3x.png')} style={styles.logo} />
             <Text style={styles.screenTitle}>Tasks</Text>
           </View>
           <TouchableOpacity

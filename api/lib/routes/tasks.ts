@@ -22,15 +22,20 @@ async function getMemberId(userId: string, householdId: string): Promise<string 
 // ── PATCH /api/tasks/:id ──────────────────────────────────────────────────────
 
 const RECURRENCES = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'biannual', 'annual', 'once'] as const
+const recurrenceSchema = z.string().refine(
+  v => (RECURRENCES as readonly string[]).includes(v) || /^every_\d+_days$/.test(v),
+  { message: 'Invalid recurrence' },
+)
 
 const UpdateTaskSchema = z.object({
   title:      z.string().min(1).max(100).trim().optional(),
   category:   z.string().min(1).max(100).optional(),
-  recurrence: z.enum(RECURRENCES).optional(),
+  recurrence: recurrenceSchema.optional(),
   assignedTo: z.string().nullable().optional(),
   roomId:     z.string().nullable().optional(),
   nextDue:    z.string().nullable().optional(), // YYYY-MM-DD or null
   notes:      z.string().max(500).nullable().optional(),
+  isPrivate:  z.boolean().optional(),
 })
 
 tasks.patch('/:id', requireAuth, zValidator('json', UpdateTaskSchema), async (c) => {
@@ -61,6 +66,7 @@ tasks.patch('/:id', requireAuth, zValidator('json', UpdateTaskSchema), async (c)
   if ('roomId'     in body)          { sets.push('room_id = ?');     args.push(body.roomId ?? null) }
   if ('nextDue'    in body)          { sets.push('next_due = ?');    args.push(body.nextDue ?? null) }
   if ('notes'      in body)          { sets.push('notes = ?');       args.push(body.notes ?? null) }
+  if (body.isPrivate !== undefined)  { sets.push('is_private = ?');  args.push(body.isPrivate ? 1 : 0) }
 
   if (!sets.length) return c.json({ error: 'Nothing to update' }, 400)
   args.push(taskId)

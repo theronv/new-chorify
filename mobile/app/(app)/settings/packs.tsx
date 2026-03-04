@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { households as householdsApi } from '@/lib/api'
@@ -83,7 +84,7 @@ export default function PacksSettingsScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
-          <Text style={styles.backText}>‹ Back</Text>
+          <Ionicons name="chevron-back" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.screenTitle}>Browse Packs</Text>
         <Text style={styles.screenSub}>
@@ -190,11 +191,7 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     marginBottom: 8,
-  },
-  backText: {
-    fontFamily: Font.medium,
-    fontSize:   FontSize.base,
-    color:      Colors.primary,
+    marginLeft:   -4,
   },
   screenTitle: {
     fontFamily: Font.displayBold,

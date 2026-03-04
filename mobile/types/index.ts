@@ -67,6 +67,25 @@ export type Recurrence =
   | 'biannual'
   | 'annual'
   | 'once'
+  | `every_${number}_days`
+
+/** Parse a custom "every_N_days" recurrence string, returns N or null. */
+export function parseCustomDays(r: string): number | null {
+  const m = r.match(/^every_(\d+)_days$/)
+  return m ? parseInt(m[1], 10) : null
+}
+
+/** Human-readable label for any recurrence value. */
+export function recurrenceLabel(r: string): string {
+  const labels: Record<string, string> = {
+    daily: 'Daily', weekly: 'Weekly', biweekly: 'Biweekly',
+    monthly: 'Monthly', quarterly: 'Quarterly', biannual: 'Biannual',
+    annual: 'Annual', once: 'One-time',
+  }
+  if (labels[r]) return labels[r]
+  const n = parseCustomDays(r)
+  return n !== null ? `Every ${n} days` : r
+}
 
 /** Legacy type alias — category is now a free-form string backed by HouseholdCategory */
 export type Category = string
@@ -90,17 +109,19 @@ export interface Room {
 }
 
 export interface Task {
-  id:             string
-  household_id:   string
-  title:          string
-  category:       Category
-  recurrence:     Recurrence
-  assigned_to:    string | null  // member id
-  room_id:        string | null  // room id
-  next_due:       string | null  // YYYY-MM-DD
-  last_completed: string | null  // YYYY-MM-DD
-  notes:          string | null
-  created_at:     string
+  id:               string
+  household_id:     string
+  title:            string
+  category:         Category
+  recurrence:       Recurrence
+  assigned_to:      string | null  // member id
+  room_id:          string | null  // room id
+  next_due:         string | null  // YYYY-MM-DD
+  last_completed:   string | null  // YYYY-MM-DD
+  notes:            string | null
+  is_private:       number         // 0 = public, 1 = private (only visible to owner)
+  owner_member_id:  string | null  // member who created the task
+  created_at:       string
 }
 
 // ── Completions ───────────────────────────────────────────────────────────────
@@ -143,6 +164,7 @@ export interface CreateTaskRequest {
   roomId?:     string
   nextDue?:    string
   notes?:      string
+  isPrivate?:  boolean
 }
 
 export interface UpdateTaskRequest {
@@ -153,6 +175,7 @@ export interface UpdateTaskRequest {
   roomId?:     string | null
   nextDue?:    string | null  // YYYY-MM-DD
   notes?:      string | null
+  isPrivate?:  boolean
 }
 
 export interface CreateRoomRequest {

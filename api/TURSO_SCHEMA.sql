@@ -65,8 +65,10 @@ CREATE TABLE IF NOT EXISTS tasks (
   assigned_to  TEXT    REFERENCES members(id) ON DELETE SET NULL,
   next_due     TEXT,   -- YYYY-MM-DD
   last_completed TEXT, -- YYYY-MM-DD
-  notes        TEXT,
-  created_at   TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+  notes            TEXT,
+  is_private       INTEGER NOT NULL DEFAULT 0,  -- 1 = only visible to owner_member_id
+  owner_member_id  TEXT    REFERENCES members(id) ON DELETE SET NULL,
+  created_at       TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- ── 6. Completions (immutable log) ────────────────────────────────────────────
@@ -129,6 +131,9 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 -- ═══════════════════════════════════════════════════════════════════════════
 -- Migration: add room_id to existing tasks (safe to run on existing DBs)
 ALTER TABLE tasks ADD COLUMN room_id TEXT REFERENCES rooms(id) ON DELETE SET NULL;
+-- Migration: add private task columns (safe to run on existing DBs)
+ALTER TABLE tasks ADD COLUMN is_private      INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE tasks ADD COLUMN owner_member_id TEXT    REFERENCES members(id) ON DELETE SET NULL;
 
 -- Migration: add categories table (safe to run on existing DBs)
 CREATE INDEX IF NOT EXISTS idx_categories_household ON categories(household_id);

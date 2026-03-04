@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import * as DocumentPicker from 'expo-document-picker'
 import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
@@ -328,7 +329,7 @@ export default function CsvScreen() {
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Text style={styles.backText}>‹ Back</Text>
+          <Ionicons name="chevron-back" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.screenTitle}>Import / Export</Text>
       </View>
@@ -506,12 +507,7 @@ const styles = StyleSheet.create({
     paddingBottom:     12,
     backgroundColor:   Colors.background,
   },
-  backBtn:    { marginBottom: 4 },
-  backText: {
-    fontFamily: Font.medium,
-    fontSize:   FontSize.base,
-    color:      Colors.primary,
-  },
+  backBtn: { marginBottom: 4, marginLeft: -4 },
   screenTitle: {
     fontFamily: Font.displayBold,
     fontSize:   FontSize['3xl'],

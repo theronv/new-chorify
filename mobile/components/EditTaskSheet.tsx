@@ -6,10 +6,12 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { tasks as tasksApi } from '@/lib/api'
@@ -20,6 +22,7 @@ import { Toast } from '@/components/Toast'
 import { Colors, getCategoryColor } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
+import { parseCustomDays } from '@/types'
 import type { Recurrence, Task } from '@/types'
 
 // ── Static data ───────────────────────────────────────────────────────────────
@@ -78,6 +81,8 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
   const [roomId,       setRoomId]       = useState<string | null>(null)
   const [roomOpen,     setRoomOpen]     = useState(false)
   const [recurrence,   setRecurrence]   = useState<Recurrence>('weekly')
+  const [customDays,   setCustomDays]   = useState(2)
+  const [isPrivate,    setIsPrivate]    = useState(false)
   const [assignedTo,   setAssignedTo]   = useState<string | null>(null)
   const [nextDue,          setNextDue]          = useState<string | null>(null)
   const [showCustomPicker, setShowCustomPicker] = useState(false)
@@ -91,6 +96,9 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
     setCategory(task.category as string)
     setRoomId(task.room_id)
     setRecurrence(task.recurrence)
+    const n = parseCustomDays(task.recurrence)
+    if (n !== null) setCustomDays(n)
+    setIsPrivate(!!task.is_private)
     setNextDue(task.next_due)
     setAssignedTo(task.assigned_to)
     setShowCustomPicker(false)
@@ -121,6 +129,7 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
         assignedTo: assignedTo ?? null,
         roomId:     roomId ?? null,
         nextDue:    nextDue ?? null,
+        isPrivate,
       })
       updateTask(task.id, {
         title:       updated.title,
@@ -327,7 +336,52 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                     </Text>
                   </TouchableOpacity>
                 ))}
+                {/* Custom N-day chip */}
+                {(() => {
+                  const active = parseCustomDays(recurrence) !== null
+                  return (
+                    <TouchableOpacity
+                      onPress={() => {
+                        const n = active ? (parseCustomDays(recurrence) ?? customDays) : customDays
+                        setCustomDays(n)
+                        setRecurrence(`every_${n}_days`)
+                      }}
+                      style={[styles.chip, active && styles.chipSelected]}
+                    >
+                      <Text style={[styles.chipLabel, active && styles.chipLabelSelected]}>
+                        {active ? `Every ${parseCustomDays(recurrence)}d` : 'Custom…'}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })()}
               </ScrollView>
+
+              {/* Custom day stepper */}
+              {parseCustomDays(recurrence) !== null && (
+                <View style={styles.stepperRow}>
+                  <TouchableOpacity
+                    style={styles.stepperBtn}
+                    onPress={() => {
+                      const n = Math.max(2, customDays - 1)
+                      setCustomDays(n)
+                      setRecurrence(`every_${n}_days`)
+                    }}
+                  >
+                    <Text style={styles.stepperBtnText}>−</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.stepperValue}>Every {customDays} days</Text>
+                  <TouchableOpacity
+                    style={styles.stepperBtn}
+                    onPress={() => {
+                      const n = Math.min(364, customDays + 1)
+                      setCustomDays(n)
+                      setRecurrence(`every_${n}_days`)
+                    }}
+                  >
+                    <Text style={styles.stepperBtnText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Next due date */}
               <Text style={styles.fieldLabel}>Next due date</Text>
@@ -408,6 +462,22 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                 ))}
               </ScrollView>
             </ScrollView>
+
+            {/* Private toggle */}
+            <View style={styles.privacyRow}>
+              <Ionicons name="lock-closed-outline" size={18} color={isPrivate ? Colors.primary : Colors.textTertiary} />
+              <View style={styles.privacyText}>
+                <Text style={[styles.privacyLabel, isPrivate && styles.privacyLabelActive]}>Private task</Text>
+                <Text style={styles.privacySub}>Only visible to you</Text>
+              </View>
+              <Switch
+                value={isPrivate}
+                onValueChange={setIsPrivate}
+                trackColor={{ false: Colors.borderSubtle, true: Colors.primaryLight }}
+                thumbColor={isPrivate ? Colors.primary : Colors.textTertiary}
+                ios_backgroundColor={Colors.borderSubtle}
+              />
+            </View>
 
             <Button
               label="Save Changes"
@@ -600,6 +670,37 @@ const styles = StyleSheet.create({
   },
   chipLabelSelected: { color: Colors.primary },
 
+  stepperRow: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    gap:            12,
+    marginTop:      -12,
+    marginBottom:   12,
+  },
+  stepperBtn: {
+    width:           36,
+    height:          36,
+    borderRadius:    18,
+    backgroundColor: Colors.primaryLight,
+    borderWidth:     1.5,
+    borderColor:     Colors.primary,
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  stepperBtnText: {
+    fontFamily: Font.semiBold,
+    fontSize:   FontSize.lg,
+    color:      Colors.primary,
+    lineHeight: 20,
+  },
+  stepperValue: {
+    fontFamily: Font.semiBold,
+    fontSize:   FontSize.sm,
+    color:      Colors.textPrimary,
+    flex:       1,
+    textAlign:  'center',
+  },
+
   datePicker: {
     marginBottom: 12,
   },
@@ -635,5 +736,31 @@ const styles = StyleSheet.create({
     textAlign:  'center',
   },
 
+  privacyRow: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    gap:             12,
+    paddingVertical: 14,
+    borderTopWidth:  1,
+    borderTopColor:  Colors.borderSubtle,
+    marginTop:       8,
+  },
+  privacyText: {
+    flex: 1,
+  },
+  privacyLabel: {
+    fontFamily: Font.medium,
+    fontSize:   FontSize.sm,
+    color:      Colors.textSecondary,
+  },
+  privacyLabelActive: {
+    color: Colors.textPrimary,
+  },
+  privacySub: {
+    fontFamily: Font.regular,
+    fontSize:   FontSize.xs,
+    color:      Colors.textTertiary,
+    marginTop:  2,
+  },
   saveBtn: { marginTop: 8 },
 })

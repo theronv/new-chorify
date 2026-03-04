@@ -5,12 +5,12 @@
     "scheme": "chorify",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/AppIcon~ios-marketing.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/AppIcon~ios-marketing.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F0F4FF"
+      "backgroundColor": "#F4F2F0"
     },
     "ios": {
       "supportsTablet": true,
@@ -22,7 +22,7 @@
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/AppIcon~ios-marketing.png"
     },
     "plugins": [
       "expo-router",
@@ -31,8 +31,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#4F46E5",
+          "icon": "./assets/AppIcon~ios-marketing.png",
+          "color": "#486966",
           "defaultChannel": "default"
         }
       ],

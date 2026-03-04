@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { households as householdsApi, rooms as roomsApi } from '@/lib/api'
@@ -116,7 +117,7 @@ export default function RoomsScreen() {
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Text style={styles.backText}>‹ Back</Text>
+          <Ionicons name="chevron-back" size={24} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.screenTitle}>Rooms</Text>
       </View>
@@ -262,11 +263,7 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     marginBottom: 4,
-  },
-  backText: {
-    fontFamily: Font.medium,
-    fontSize:   FontSize.base,
-    color:      Colors.primary,
+    marginLeft:   -4,
   },
   screenTitle: {
     fontFamily: Font.displayBold,

@@ -10,7 +10,8 @@ export const CSV_HEADERS = [
   'room', 'assigned_to', 'next_due', 'notes',
 ] as const
 
-const VALID_RECURRENCES: readonly string[] = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'biannual', 'annual', 'once']
+const NAMED_RECURRENCES = ['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'biannual', 'annual', 'once'] as const
+const isValidRecurrence = (v: string) => (NAMED_RECURRENCES as readonly string[]).includes(v) || /^every_\d+_days$/.test(v)
 
 // ── Serialisation ─────────────────────────────────────────────────────────────
 
@@ -142,7 +143,7 @@ export function parseTaskRows(csvText: string): ParsedTaskRow[] {
     const nextDue      = get(row, nextDueIdx)
 
     if (!title)                                            errors.push('title is required')
-    if (!VALID_RECURRENCES.includes(recurrRaw))            errors.push(`invalid recurrence "${recurrRaw}"`)
+    if (!isValidRecurrence(recurrRaw))                     errors.push(`invalid recurrence "${recurrRaw}"`)
     if (nextDue && !/^\d{4}-\d{2}-\d{2}$/.test(nextDue)) errors.push(`next_due must be YYYY-MM-DD, got "${nextDue}"`)
 
     return [{

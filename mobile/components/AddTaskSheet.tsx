@@ -6,10 +6,12 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { households as householdsApi } from '@/lib/api'
@@ -20,6 +22,7 @@ import { Toast } from '@/components/Toast'
 import { Colors, getCategoryColor } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
+import { parseCustomDays } from '@/types'
 import type { Recurrence } from '@/types'
 
 // ── Static data ───────────────────────────────────────────────────────────────
@@ -78,6 +81,8 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
   const [roomId,         setRoomId]         = useState<string | null>(null)
   const [roomOpen,       setRoomOpen]       = useState(false)
   const [recurrence,       setRecurrence]       = useState<Recurrence>('weekly')
+  const [customDays,       setCustomDays]       = useState(2)
+  const [isPrivate,        setIsPrivate]        = useState(false)
   const [assignedTo,       setAssignedTo]       = useState<string | null>(null)
   const [nextDue,          setNextDue]          = useState<string | null>(null)
   const [showCustomPicker, setShowCustomPicker] = useState(false)
@@ -103,6 +108,8 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
     setRoomId(null)
     setRoomOpen(false)
     setRecurrence('weekly')
+    setCustomDays(2)
+    setIsPrivate(false)
     setAssignedTo(null)
     setNextDue(null)
     setShowCustomPicker(false)
@@ -127,6 +134,7 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
         assignedTo: assignedTo ?? undefined,
         roomId:     roomId ?? undefined,
         nextDue:    nextDue ?? undefined,
+        isPrivate,
       })
       addTask(task)
       handleClose()
@@ -342,7 +350,52 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
                     </Text>
                   </TouchableOpacity>
                 ))}
+                {/* Custom N-day pill */}
+                {(() => {
+                  const active = parseCustomDays(recurrence) !== null
+                  return (
+                    <TouchableOpacity
+                      onPress={() => {
+                        const n = active ? (parseCustomDays(recurrence) ?? customDays) : customDays
+                        setCustomDays(n)
+                        setRecurrence(`every_${n}_days`)
+                      }}
+                      style={[styles.pill, active && styles.pillSelected]}
+                    >
+                      <Text style={[styles.pillLabel, active && styles.pillLabelSelected]}>
+                        {active ? `Every ${parseCustomDays(recurrence)}d` : 'Custom…'}
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                })()}
               </ScrollView>
+
+              {/* Custom day stepper */}
+              {parseCustomDays(recurrence) !== null && (
+                <View style={styles.stepperRow}>
+                  <TouchableOpacity
+                    style={styles.stepperBtn}
+                    onPress={() => {
+                      const n = Math.max(2, customDays - 1)
+                      setCustomDays(n)
+                      setRecurrence(`every_${n}_days`)
+                    }}
+                  >
+                    <Text style={styles.stepperBtnText}>−</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.stepperValue}>Every {customDays} days</Text>
+                  <TouchableOpacity
+                    style={styles.stepperBtn}
+                    onPress={() => {
+                      const n = Math.min(364, customDays + 1)
+                      setCustomDays(n)
+                      setRecurrence(`every_${n}_days`)
+                    }}
+                  >
+                    <Text style={styles.stepperBtnText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {showAdvanced && (
                 <ScrollView
@@ -461,6 +514,22 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
                 ))}
               </ScrollView>
             </ScrollView>
+
+            {/* Private toggle */}
+            <View style={styles.privacyRow}>
+              <Ionicons name="lock-closed-outline" size={18} color={isPrivate ? Colors.primary : Colors.textTertiary} />
+              <View style={styles.privacyText}>
+                <Text style={[styles.privacyLabel, isPrivate && styles.privacyLabelActive]}>Private task</Text>
+                <Text style={styles.privacySub}>Only visible to you</Text>
+              </View>
+              <Switch
+                value={isPrivate}
+                onValueChange={setIsPrivate}
+                trackColor={{ false: Colors.borderSubtle, true: Colors.primaryLight }}
+                thumbColor={isPrivate ? Colors.primary : Colors.textTertiary}
+                ios_backgroundColor={Colors.borderSubtle}
+              />
+            </View>
 
             {/* Save */}
             <Button
@@ -666,6 +735,36 @@ const styles = StyleSheet.create({
   pillLabelSelected: {
     color: Colors.primary,
   },
+  stepperRow: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    gap:            12,
+    marginTop:      4,
+    marginBottom:   12,
+  },
+  stepperBtn: {
+    width:           36,
+    height:          36,
+    borderRadius:    18,
+    backgroundColor: Colors.primaryLight,
+    borderWidth:     1.5,
+    borderColor:     Colors.primary,
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  stepperBtnText: {
+    fontFamily: Font.semiBold,
+    fontSize:   FontSize.lg,
+    color:      Colors.primary,
+    lineHeight: 20,
+  },
+  stepperValue: {
+    fontFamily: Font.semiBold,
+    fontSize:   FontSize.sm,
+    color:      Colors.textPrimary,
+    flex:       1,
+    textAlign:  'center',
+  },
   advancedToggle: {
     alignSelf:    'flex-start',
     marginTop:    4,
@@ -709,6 +808,33 @@ const styles = StyleSheet.create({
     color:      Colors.textSecondary,
     maxWidth:   64,
     textAlign:  'center',
+  },
+
+  privacyRow: {
+    flexDirection:   'row',
+    alignItems:      'center',
+    gap:             12,
+    paddingVertical: 14,
+    borderTopWidth:  1,
+    borderTopColor:  Colors.borderSubtle,
+    marginTop:       8,
+  },
+  privacyText: {
+    flex: 1,
+  },
+  privacyLabel: {
+    fontFamily: Font.medium,
+    fontSize:   FontSize.sm,
+    color:      Colors.textSecondary,
+  },
+  privacyLabelActive: {
+    color: Colors.textPrimary,
+  },
+  privacySub: {
+    fontFamily: Font.regular,
+    fontSize:   FontSize.xs,
+    color:      Colors.textTertiary,
+    marginTop:  2,
   },
 
   saveBtn: {

@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native'
 import * as Haptics from 'expo-haptics'
+import { Ionicons } from '@expo/vector-icons'
 import { Colors, getCategoryColor } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 import { getTodayString, useHouseholdStore } from '@/lib/store'
@@ -156,6 +157,14 @@ export function TaskCard({ task, members, rooms, isCompleted, isCompleting, onCo
             >
               {task.title}
             </Text>
+            {!!task.is_private && (
+              <Ionicons
+                name="lock-closed"
+                size={12}
+                color={Colors.textTertiary}
+                style={styles.lockIcon}
+              />
+            )}
           </View>
 
           {/* Row 2: category pill + room pill + assignee */}
@@ -287,7 +296,10 @@ const styles = StyleSheet.create({
     fontFamily:  Font.semiBold,
     fontSize:    FontSize.base,
     color:       Colors.textPrimary,
-    marginRight: 10,
+    marginRight: 6,
+  },
+  lockIcon: {
+    marginTop: 2,
   },
   titleCompleted: {
     color:              Colors.textSecondary,
