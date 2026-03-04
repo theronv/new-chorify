@@ -1,7 +1,7 @@
 # Chorify — Developer Guide
 
 > **Date:** March 2026
-> **Status:** Beta / TestFlight ready (with noted issues below)
+> **Status:** Beta · TestFlight confirmed working
 > **Stack:** React Native · Expo SDK 54 · Hono · Turso/libSQL · Vercel Edge
 
 ---
@@ -24,6 +24,8 @@
 14. [Improvement Opportunities](#14-improvement-opportunities)
 15. [TestFlight Checklist](#15-testflight-checklist)
 16. [Environment Setup & Building](#16-environment-setup--building)
+17. [API Deployment & Database Migrations](#17-api-deployment--database-migrations)
+18. [Backend Smoke Testing](#18-backend-smoke-testing)
 
 ---
 
@@ -307,16 +309,21 @@ Key methods: `hydrate()`, `setTokens()`, `updateAccessToken()`, `logout()`
 ### `useHouseholdStore`
 All household data. Loaded in parallel on app mount and on pull-to-refresh.
 
-| Field | Type |
-|-------|------|
-| `household` | `Household \| null` |
-| `members` | `Member[]` |
-| `tasks` | `Task[]` |
-| `completions` | `Completion[]` |
-| `rooms` | `Room[]` |
-| `categories` | `HouseholdCategory[]` |
+| Field | Type | Description |
+|-------|------|-------------|
+| `household` | `Household \| null` | |
+| `members` | `Member[]` | |
+| `tasks` | `Task[]` | |
+| `completions` | `Completion[]` | |
+| `rooms` | `Room[]` | |
+| `categories` | `HouseholdCategory[]` | |
+| `isLoading` | `boolean` | True while `load()` is in flight |
+| `loadError` | `string \| null` | Set when `load()` throws; cleared on next call |
 
-Key methods: `load(householdId)`, `addTask`, `updateTask`, `removeTask`, `addCompletion`, `addRoom`, `updateRoom`, `removeRoom`, `addCategory`, `updateCategory`, `removeCategory`, `renameCategoryOnTasks`
+Key methods: `load(householdId, silent?)`, `addTask`, `updateTask`, `removeTask`, `addCompletion`, `addRoom`, `updateRoom`, `removeRoom`, `addCategory`, `updateCategory`, `removeCategory`, `renameCategoryOnTasks`
+
+#### `load()` error handling
+`load()` wraps the parallel fetch in a `try/catch`. On failure it sets `loadError` with the error message and never updates the data fields. The Today screen subscribes to `loadError` and renders a full-screen error state with a **Try Again** button when it is non-null. Pass `silent = true` to suppress the loading spinner (e.g. background refreshes).
 
 ### Selectors (module-level functions, not hooks)
 ```typescript
@@ -615,9 +622,10 @@ Dead code. Safe to remove.
 
 ---
 
-#### BUG-10: `load()` failure shows empty state with no error
-**File:** `mobile/lib/store.ts:176–194`
-If any of the parallel API calls in `load()` fail (except `categories` which has an explicit `.catch` fallback), the store's `try` block exits without updating state. The UI shows empty lists with no error message. This is particularly likely to occur if the access token is expired and the refresh fails.
+#### BUG-10: `load()` failure shows empty state with no error ✓ Fixed
+**File:** `mobile/lib/store.ts`
+If any of the parallel API calls in `load()` failed (except `categories` which had an explicit `.catch` fallback), the store's `try` block exited without updating state. The UI showed empty lists with no error message and no way to retry.
+**Fix:** Added `loadError: string | null` to `useHouseholdStore`. `load()` now catches errors, sets `loadError`, and the Today screen renders a full-screen error state with a **Try Again** button when `loadError` is non-null. This was the root cause of the "no data after sign-in" bug observed in TestFlight (see section 17 for the underlying API deployment issue that triggered it).
 
 ---
 
@@ -625,7 +633,6 @@ If any of the parallel API calls in `load()` fail (except `categories` which has
 
 ### UX
 - **No undo for task delete** — after swiping and confirming, there's no way to recover a deleted task. An undo toast would improve the experience.
-- **No error state for load failure** — if `load()` fails, screens show an empty state indistinguishable from "no data yet." A retry button and error message would help.
 - **Room filter persists on navigation** — the room filter on the Today screen resets to "All Rooms" when the sheet is dismissed but does not persist across tab switches. This is likely intentional but worth confirming.
 - **Tasks screen leaderboard re-renders on every keystroke** — `weeklyCompletions()` is re-called inside `.sort()` for every member comparison. Cache these counts with `useMemo`.
 
@@ -646,7 +653,7 @@ If any of the parallel API calls in `load()` fail (except `categories` which has
 
 ## 15. TestFlight Checklist
 
-### Pre-flight fixes (all completed ✓)
+### Fixes completed ✓
 - [x] **BUG-1** — Gate production `console.log` in `api.ts` and `_layout.tsx` behind `__DEV__`
 - [x] **BUG-2** — Add `Completion` to imports in `api.ts`
 - [x] **BUG-3** — Fix `addDays()` to use app timezone in `AddTaskSheet`
@@ -655,12 +662,15 @@ If any of the parallel API calls in `load()` fail (except `categories` which has
 - [x] **BUG-6** — Remove non-functional `isChild` toggle from Add Member sheet
 - [x] **BUG-8** — Fix `weeklyCompletions()` to use app timezone in Tasks screen
 - [x] **BUG-9** — Remove unused `profilePoints` style
-- [x] `EXPO_PUBLIC_API_URL` set to production URL in `eas.json` production env and `.env.local`
+- [x] **BUG-10** — `load()` now catches errors; Today screen shows retry UI on failure
+- [x] `EXPO_PUBLIC_API_URL` set to production URL in `eas.json` production env
 - [x] Push notification entitlements and EAS project ID confirmed in `app.json`
+- [x] API deployed to Vercel (`npx vercel --prod` from `api/`)
+- [x] Turso DB migrations applied (`is_private`, `owner_member_id` columns added to `tasks`)
+- [x] Full backend smoke test passing (41/41 checks) — confirmed March 2026
 
 ### Remaining (future releases)
 - [ ] **BUG-7** — Rename legacy SecureStore keys from `keptt.*` to `chorify.*` (requires migration on first launch)
-- [ ] **BUG-10** — Show retry UI when `load()` fails instead of silent empty state
 - [ ] Rate limiting on `/api/auth/login` and `/api/auth/signup`
 
 ### QA Test Cases
@@ -833,4 +843,107 @@ EAS emails you when the build completes (~10–15 minutes). The build then appea
 
 ---
 
-*Document generated March 2026. Review against code before major releases.*
+---
+
+## 17. API Deployment & Database Migrations
+
+### Deploying the API
+
+The API is hosted on Vercel. **Vercel is not connected to a Git repository** — deploys must be triggered manually from the CLI.
+
+```bash
+cd api
+npx vercel --prod
+```
+
+The Vercel project is `theronvickery-5684s-projects/api`, aliased to `https://api-eight-pi-38.vercel.app`.
+
+> **Warning:** `npx vercel env pull` (or the implicit pull during `vercel --prod`) will overwrite `api/.env.local` with the Vercel **Development** environment, which does not contain `JWT_SECRET`, `TURSO_URL`, or `TURSO_AUTH_TOKEN` (those are Production-only vars). Back up your local `.env.local` before deploying if you need it for local dev.
+
+### Turso Database
+
+**Database name:** `chorify-theronv`
+**URL:** `libsql://chorify-theronv-theronv.aws-us-west-2.turso.io`
+
+Shell access:
+```bash
+turso db shell chorify-theronv
+```
+
+The full desired schema is in `api/TURSO_SCHEMA.sql`. `CREATE TABLE IF NOT EXISTS` statements are safe to re-run. `ALTER TABLE` statements at the bottom of the file are migrations and will error if the column already exists — check first with:
+
+```bash
+turso db shell chorify-theronv "PRAGMA table_info(tasks)"
+```
+
+### Migration History
+
+| Date | Migration | Reason |
+|------|-----------|--------|
+| March 2026 | `ALTER TABLE tasks ADD COLUMN room_id TEXT REFERENCES rooms(id) ON DELETE SET NULL` | Rooms feature |
+| March 2026 | `ALTER TABLE tasks ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0` | Private tasks feature |
+| March 2026 | `ALTER TABLE tasks ADD COLUMN owner_member_id TEXT REFERENCES members(id) ON DELETE SET NULL` | Private tasks feature |
+
+### What Happens If You Forget to Deploy or Migrate
+
+This caused the "no data after sign-in" bug in the first TestFlight beta:
+
+1. Rooms + categories routes and the string-category change were added to the codebase but not deployed
+2. `GET /api/households/:id/rooms` returned 404
+3. `load()` in the store had no catch block, so the entire load silently failed
+4. Users saw an empty app with no error message
+
+**Lesson:** Any time routes are added or the DB schema changes, both a Vercel deploy **and** a Turso migration must be run before shipping a new build. BUG-10 is now fixed so future failures will at least show a visible error with a retry button.
+
+---
+
+## 18. Backend Smoke Testing
+
+A Python smoke test can be run against the production API to verify all endpoints before shipping a build. It creates a throwaway account, exercises every endpoint, then cleans up.
+
+```bash
+python3 << 'EOF'
+import urllib.request, urllib.error, json, time
+
+BASE = "https://api-eight-pi-38.vercel.app/api"
+# ... (see smoke test script in session history)
+EOF
+```
+
+### What the smoke test covers (41 checks)
+
+| # | Operation | Verifies |
+|---|-----------|---------|
+| 1 | Signup | HTTP 201, accessToken, refreshToken, userId |
+| 2 | Login | HTTP 200, accessToken |
+| 3 | Create Household | HTTP 201, householdId, invite_code |
+| 4 | Get Household | HTTP 200, name match |
+| 5 | Get Members | HTTP 200, 1 member seeded |
+| 6 | Get Rooms | HTTP 200, 5 default rooms seeded |
+| 7 | Get Categories | HTTP 200, 6 default categories seeded |
+| 8 | Create Task | HTTP 201, taskId, next_due |
+| 9 | Update Task | HTTP 200, title updated |
+| 10 | Complete Task | HTTP 200, completion.id, nextDue |
+| 11 | Get Completions | HTTP 200, 1 completion |
+| 12 | Get Tasks | HTTP 200, 1 task |
+| 13 | Room CRUD | create 201 / update name / delete 204 |
+| 14 | Category CRUD | create 201 / update name / delete 204 |
+| 15 | Update Member | HTTP 200, ok: true |
+| 16 | Token Refresh | HTTP 200, new refreshToken |
+| 17 | Delete Task | HTTP 204 |
+| 18 | Logout | HTTP 200, ok: true |
+| 19 | Auth guard | Invalid token → 401 |
+
+### Common failure patterns
+
+| Symptom | Likely cause |
+|---------|-------------|
+| Rooms/categories return 404 | API not deployed after adding those routes |
+| Create task returns 500 | DB missing `is_private` or `owner_member_id` column |
+| Create task returns 400 with `invalid_enum_value` | Old API deployment still using hardcoded category enum |
+| 308 redirect on PATCH/DELETE | Upstream failure left an empty ID — chase the first ❌ |
+| Health check returns `{"ok":true}` but everything else fails | Vercel cold start — wait 5s and retry |
+
+---
+
+*Document updated March 2026 after TestFlight beta verification. Review against code before major releases.*
