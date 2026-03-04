@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { households as householdsApi } from '@/lib/api'
-import { useAuthStore, useHouseholdStore } from '@/lib/store'
+import { getTodayString, useAuthStore, useHouseholdStore } from '@/lib/store'
 import { Button } from '@/components/Button'
 import { Input } from '@/components/Input'
 import { Toast } from '@/components/Toast'
@@ -37,9 +37,11 @@ const DUE_CHIPS: { label: string; days: number | null }[] = [
 ]
 
 function addDays(n: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() + n)
-  return d.toLocaleDateString('en-CA')
+  const today = getTodayString()
+  if (n === 0) return today
+  const [y, m, d] = today.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d + n))
+  return date.toISOString().slice(0, 10)
 }
 
 function chipDate(days: number | null): string | null {

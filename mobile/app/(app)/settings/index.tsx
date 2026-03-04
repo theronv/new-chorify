@@ -10,7 +10,6 @@ import {
   ScrollView,
   Share,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -79,7 +78,6 @@ export default function SettingsScreen() {
   const [memberSheetVisible, setMemberSheetVisible] = useState(false)
   const [displayName,        setDisplayName]        = useState('')
   const [emoji,              setEmoji]              = useState('🧒')
-  const [isChild,            setIsChild]            = useState(true)
   const [memberLoading,      setMemberLoading]      = useState(false)
   const [memberError,        setMemberError]        = useState<string | null>(null)
 
@@ -188,7 +186,6 @@ export default function SettingsScreen() {
   function resetMemberSheet() {
     setDisplayName('')
     setEmoji('🧒')
-    setIsChild(true)
     setMemberError(null)
   }
 
@@ -248,7 +245,7 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <View style={styles.titleRow}>
-          <Image source={require('@/assets/AppIcon@3x.png')} style={styles.logo} />
+          <Image source={require('../../../assets/AppIcon.png')} style={styles.logo} />
           <Text style={styles.screenTitle}>Settings</Text>
         </View>
       </View>
@@ -544,28 +541,17 @@ export default function SettingsScreen() {
                   ))}
                 </ScrollView>
 
-                <View style={styles.toggleRow}>
-                  <View style={styles.toggleText}>
-                    <Text style={styles.toggleTitle}>Child account</Text>
-                    <Text style={styles.toggleSub}>
-                      {isChild
-                        ? 'No email or login needed'
-                        : 'Adults join via the invite code above'}
-                    </Text>
-                  </View>
-                  <Switch
-                    value={isChild}
-                    onValueChange={setIsChild}
-                    trackColor={{ false: Colors.border, true: Colors.primary }}
-                    thumbColor={Colors.surface}
-                  />
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoText}>
+                    Child accounts have no email or login. Adults join by entering the household invite code.
+                  </Text>
                 </View>
 
                 <Button
                   label="Add Member"
                   onPress={handleSaveMember}
                   loading={memberLoading}
-                  disabled={!displayName.trim() || !isChild || memberLoading}
+                  disabled={!displayName.trim() || memberLoading}
                   style={styles.saveBtn}
                 />
               </ScrollView>
@@ -725,11 +711,6 @@ const styles = StyleSheet.create({
     fontSize:    FontSize.base,
     color:       Colors.textPrimary,
     marginBottom: 2,
-  },
-  profilePoints: {
-    fontFamily: Font.regular,
-    fontSize:   FontSize.sm,
-    color:      Colors.textSecondary,
   },
   profilePhotoHint: {
     fontFamily: Font.regular,
@@ -914,26 +895,17 @@ const styles = StyleSheet.create({
     borderColor:     Colors.primary,
   },
   emojiOpt: { fontSize: 24 },
-  toggleRow: {
-    flexDirection:   'row',
-    alignItems:      'center',
-    justifyContent:  'space-between',
+  infoRow: {
     backgroundColor: Colors.borderSubtle,
     borderRadius:    Radius.lg,
     padding:         14,
     marginBottom:    20,
   },
-  toggleText:  { flex: 1, marginRight: 12 },
-  toggleTitle: {
-    fontFamily: Font.semiBold,
-    fontSize:   FontSize.base,
-    color:      Colors.textPrimary,
-  },
-  toggleSub: {
+  infoText: {
     fontFamily: Font.regular,
     fontSize:   FontSize.sm,
     color:      Colors.textSecondary,
-    marginTop:  2,
+    lineHeight: FontSize.sm * 1.5,
   },
   saveBtn: { marginTop: 4 },
 

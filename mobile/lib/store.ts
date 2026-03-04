@@ -270,7 +270,17 @@ export function selectIsCompletedToday(taskId: string, completions: Completion[]
   return completions.some((c) => c.task_id === taskId && c.completed_date === today)
 }
 
-/** Consecutive-day streak for a member */
+/** Subtract n days from a YYYY-MM-DD string. Returns YYYY-MM-DD. */
+function dateMinus(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d - days)).toISOString().slice(0, 10)
+}
+
+/**
+ * Consecutive-day streak for a member.
+ * A streak is still live if the member hasn't completed anything today yet
+ * (it counts back from yesterday in that case).
+ */
 export function selectStreak(memberId: string, completions: Completion[]): number {
   const dates = [...new Set(
     completions
@@ -279,16 +289,21 @@ export function selectStreak(memberId: string, completions: Completion[]): numbe
   )].sort().reverse()
 
   if (dates.length === 0) return 0
-  let streak  = 0
-  let current = new Date()
-  current.setHours(0, 0, 0, 0)
 
-  for (const date of dates) {
-    const d = new Date(date + 'T00:00:00Z')
-    const diffDays = Math.round((current.getTime() - d.getTime()) / 86_400_000)
-    if (diffDays > 1) break
-    streak++
-    current = d
+  const today     = getTodayString()
+  const yesterday = dateMinus(today, 1)
+
+  // Start counting from today if completed today, otherwise from yesterday.
+  // If the most recent completion is older than yesterday, streak is 0.
+  const startDate = dates[0] === today ? today : yesterday
+
+  let streak = 0
+  for (let i = 0; i < dates.length; i++) {
+    if (dates[i] === dateMinus(startDate, i)) {
+      streak++
+    } else {
+      break
+    }
   }
   return streak
 }

@@ -5,6 +5,7 @@
 import * as SecureStore from 'expo-secure-store'
 import type {
   AuthTokens,
+  Completion,
   CreateCategoryRequest,
   CreateHouseholdRequest,
   CreateMemberRequest,
@@ -42,7 +43,7 @@ const BASE_URL = (() => {
   }
   return url ?? 'http://localhost:3000'
 })()
-console.log('[api] BASE_URL:', BASE_URL)
+if (__DEV__) console.log('[api] BASE_URL:', BASE_URL)
 
 // ── Secure storage keys ───────────────────────────────────────────────────────
 const ACCESS_KEY  = 'keptt.access_token'
@@ -124,10 +125,12 @@ async function request<T>(
   }
 
   const url = `${BASE_URL}${path}`
-  console.log('API request:', options.method ?? 'GET', url, options.body ?? '')
+  if (__DEV__) console.log('API request:', options.method ?? 'GET', url, options.body ?? '')
   const res = await fetch(url, { ...options, headers })
-  console.log('API response status:', res.status)
-  console.log('API response body:', await res.clone().text())
+  if (__DEV__) {
+    console.log('API response status:', res.status)
+    console.log('API response body:', await res.clone().text())
+  }
 
   // Silent refresh on 401
   if (res.status === 401 && retry) {

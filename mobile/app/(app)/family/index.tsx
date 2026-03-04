@@ -25,6 +25,7 @@ import { AddTaskSheet } from '@/components/AddTaskSheet'
 import { EditTaskSheet } from '@/components/EditTaskSheet'
 import { MemberAvatar } from '@/components/MemberAvatar'
 import { TaskCard } from '@/components/TaskCard'
+import { Toast } from '@/components/Toast'
 import { Colors, Radius } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
@@ -33,9 +34,9 @@ import type { Task, Completion } from '@/types'
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function weeklyCompletions(memberId: string, completions: Completion[]): number {
-  const cutoff = new Date()
-  cutoff.setUTCDate(cutoff.getUTCDate() - 7)
-  const cutoffStr = cutoff.toISOString().slice(0, 10)
+  const today = getTodayString()
+  const [y, m, d] = today.split('-').map(Number)
+  const cutoffStr = new Date(Date.UTC(y, m - 1, d - 7)).toISOString().slice(0, 10)
   return completions.filter(
     (c) => c.member_id === memberId && c.completed_date >= cutoffStr,
   ).length
@@ -64,6 +65,7 @@ export default function TasksScreen() {
   const [sheetVisible, setSheetVisible]   = useState(false)
   const [editingTask, setEditingTask]     = useState<Task | null>(null)
   const [completing, setCompleting]       = useState<Record<string, boolean>>({})
+  const [deleteError, setDeleteError]     = useState<string | null>(null)
 
   // Filter state
   const [filterRoomId, setFilterRoomId]       = useState<string | null>(null)
@@ -164,7 +166,7 @@ export default function TasksScreen() {
       await tasksApi.delete(task.id)
       removeTask(task.id)
     } catch {
-      // Task card has already animated off; silently ignore
+      setDeleteError('Could not delete task. Pull down to refresh.')
     }
   }
 
@@ -181,7 +183,7 @@ export default function TasksScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <View style={styles.headerTop}>
           <View style={styles.titleRow}>
-            <Image source={require('@/assets/AppIcon@3x.png')} style={styles.logo} />
+            <Image source={require('../../../assets/AppIcon.png')} style={styles.logo} />
             <Text style={styles.screenTitle}>Tasks</Text>
           </View>
           <TouchableOpacity
@@ -541,6 +543,13 @@ export default function TasksScreen() {
         task={editingTask}
         visible={editingTask !== null}
         onClose={() => setEditingTask(null)}
+      />
+
+      <Toast
+        message={deleteError ?? ''}
+        type="error"
+        visible={deleteError !== null}
+        onHide={() => setDeleteError(null)}
       />
 
     </View>

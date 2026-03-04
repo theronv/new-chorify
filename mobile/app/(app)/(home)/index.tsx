@@ -23,6 +23,7 @@ import {
 import { AddTaskSheet } from '@/components/AddTaskSheet'
 import { EditTaskSheet } from '@/components/EditTaskSheet'
 import { TaskCard } from '@/components/TaskCard'
+import { Toast } from '@/components/Toast'
 import { Colors, Radius } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
@@ -50,6 +51,7 @@ export default function HomeScreen() {
   const [completing,      setCompleting]      = useState<Record<string, boolean>>({})
   const [filterRoomId,    setFilterRoomId]    = useState<string | null>(null)
   const [roomPickerOpen,  setRoomPickerOpen]  = useState(false)
+  const [deleteError,     setDeleteError]     = useState<string | null>(null)
 
   const confettiRef = useRef<any>(null)
   const today       = getTodayString()
@@ -122,7 +124,7 @@ export default function HomeScreen() {
       await tasksApi.delete(task.id)
       removeTask(task.id)
     } catch {
-      // Task card has already animated off; silently ignore the error
+      setDeleteError('Could not delete task. Pull down to refresh.')
     }
   }
 
@@ -138,7 +140,7 @@ export default function HomeScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <View style={styles.headerTop}>
           <View style={styles.titleRow}>
-            <Image source={require('../../../assets/AppIcon@3x.png')} style={styles.logo} />
+            <Image source={require('../../../assets/AppIcon.png')} style={styles.logo} />
             <View>
               <Text style={styles.screenTitle}>Today</Text>
               <Text style={styles.dateLabel}>
@@ -351,6 +353,13 @@ export default function HomeScreen() {
         task={editingTask}
         visible={editingTask !== null}
         onClose={() => setEditingTask(null)}
+      />
+
+      <Toast
+        message={deleteError ?? ''}
+        type="error"
+        visible={deleteError !== null}
+        onHide={() => setDeleteError(null)}
       />
     </View>
   )

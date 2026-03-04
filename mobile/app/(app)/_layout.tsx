@@ -56,12 +56,12 @@ export default function AppLayout() {
               await membersApi.update(memberId, { pushToken: token })
               await SecureStore.setItemAsync(PUSH_TOKEN_CACHE_KEY, token)
               updateMember(memberId, { push_token: token })
-              console.log('[Push] Token updated on server')
+              if (__DEV__) console.log('[Push] Token updated on server')
             } catch (e) {
-              console.warn('[Push] Failed to update token on server:', e)
+              if (__DEV__) console.warn('[Push] Failed to update token on server:', e)
             }
           } else {
-            console.log('[Push] Token unchanged — skipping PATCH')
+            if (__DEV__) console.log('[Push] Token unchanged — skipping PATCH')
           }
         }
       } else {
