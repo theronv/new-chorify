@@ -138,7 +138,7 @@ export default function HomeScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <View style={styles.headerTop}>
           <View style={styles.titleRow}>
-            <Image source={require('@/assets/AppIcon@3x.png')} style={styles.logo} />
+            <Image source={require('../../../assets/AppIcon@3x.png')} style={styles.logo} />
             <View>
               <Text style={styles.screenTitle}>Today</Text>
               <Text style={styles.dateLabel}>
