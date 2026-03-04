@@ -41,6 +41,7 @@ export default function HomeScreen() {
   const members       = useHouseholdStore((s) => s.members)
   const rooms         = useHouseholdStore((s) => s.rooms)
   const isLoading     = useHouseholdStore((s) => s.isLoading)
+  const loadError     = useHouseholdStore((s) => s.loadError)
   const load          = useHouseholdStore((s) => s.load)
   const addCompletion = useHouseholdStore((s) => s.addCompletion)
   const updateTask    = useHouseholdStore((s) => s.updateTask)
@@ -221,8 +222,24 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      {/* Load error state */}
+      {loadError !== null && (
+        <View style={styles.errorState}>
+          <Text style={styles.errorEmoji}>⚠️</Text>
+          <Text style={styles.errorTitle}>Couldn't load your tasks</Text>
+          <Text style={styles.errorBody}>{loadError}</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => householdId && load(householdId)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryBtnText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Task list */}
-      <ScrollView
+      {loadError === null && <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
@@ -333,7 +350,7 @@ export default function HomeScreen() {
             ))}
           </View>
         )}
-      </ScrollView>
+      </ScrollView>}
 
       {/* Confetti — renders off-screen until .start() is called */}
       <ConfettiCannon
@@ -533,6 +550,44 @@ const styles = StyleSheet.create({
     color:      Colors.textSecondary,
     textAlign:  'center',
     maxWidth:   240,
+  },
+
+  // Load error
+  errorState: {
+    flex:           1,
+    alignItems:     'center',
+    justifyContent: 'center',
+    padding:        32,
+    gap:            8,
+  },
+  errorEmoji: {
+    fontSize:     48,
+    marginBottom: 4,
+  },
+  errorTitle: {
+    fontFamily: Font.displayBold,
+    fontSize:   FontSize.xl,
+    color:      Colors.textPrimary,
+    textAlign:  'center',
+  },
+  errorBody: {
+    fontFamily: Font.regular,
+    fontSize:   FontSize.sm,
+    color:      Colors.textSecondary,
+    textAlign:  'center',
+    maxWidth:   280,
+  },
+  retryBtn: {
+    marginTop:         16,
+    paddingHorizontal: 28,
+    paddingVertical:   12,
+    borderRadius:      Radius.full,
+    backgroundColor:   Colors.primary,
+  },
+  retryBtnText: {
+    fontFamily: Font.semiBold,
+    fontSize:   FontSize.base,
+    color:      Colors.textOnPrimary,
   },
 
   // Header top row

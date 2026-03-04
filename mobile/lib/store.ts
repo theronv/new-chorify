@@ -145,8 +145,9 @@ interface HouseholdState {
   rooms:       Room[]
   categories:  HouseholdCategory[]
   isLoading:   boolean
+  loadError:   string | null
 
-  load:               (householdId: string) => Promise<void>
+  load:               (householdId: string, silent?: boolean) => Promise<void>
   addCompletion:      (c: Completion) => void
   updateTask:         (taskId: string, patch: Partial<Task>) => void
   addTask:            (task: Task) => void
@@ -172,9 +173,10 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
   rooms:       [],
   categories:  [],
   isLoading:   false,
+  loadError:   null,
 
-  load: async (householdId) => {
-    set({ isLoading: true })
+  load: async (householdId, silent = false) => {
+    set({ isLoading: !silent, loadError: null })
     try {
       const [
         { household }, { members }, { tasks }, { completions }, { rooms },
@@ -189,6 +191,9 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
         householdsApi.categories(householdId).catch(() => ({ categories: [] as import('@/types').HouseholdCategory[] })),
       ])
       set({ household, members, tasks, completions, rooms, categories: categoriesResult.categories })
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to load household data'
+      set({ loadError: msg })
     } finally {
       set({ isLoading: false })
     }
@@ -244,7 +249,7 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
     })),
 
   clear: () =>
-    set({ household: null, members: [], tasks: [], completions: [], rooms: [], categories: [] }),
+    set({ household: null, members: [], tasks: [], completions: [], rooms: [], categories: [], loadError: null }),
 }))
 
 // ── Computed selectors ────────────────────────────────────────────────────────

@@ -23,7 +23,7 @@
 13. [Bug Report](#13-bug-report)
 14. [Improvement Opportunities](#14-improvement-opportunities)
 15. [TestFlight Checklist](#15-testflight-checklist)
-16. [Environment Setup](#16-environment-setup)
+16. [Environment Setup & Building](#16-environment-setup--building)
 
 ---
 
@@ -646,26 +646,22 @@ If any of the parallel API calls in `load()` fail (except `categories` which has
 
 ## 15. TestFlight Checklist
 
-Before submitting to TestFlight, address the following:
+### Pre-flight fixes (all completed ✓)
+- [x] **BUG-1** — Gate production `console.log` in `api.ts` and `_layout.tsx` behind `__DEV__`
+- [x] **BUG-2** — Add `Completion` to imports in `api.ts`
+- [x] **BUG-3** — Fix `addDays()` to use app timezone in `AddTaskSheet`
+- [x] **BUG-4** — Fix `selectStreak()` timezone mixing in `store.ts`
+- [x] **BUG-5** — Add error Toast for failed task delete on Today + Tasks screens
+- [x] **BUG-6** — Remove non-functional `isChild` toggle from Add Member sheet
+- [x] **BUG-8** — Fix `weeklyCompletions()` to use app timezone in Tasks screen
+- [x] **BUG-9** — Remove unused `profilePoints` style
+- [x] `EXPO_PUBLIC_API_URL` set to production URL in `eas.json` production env and `.env.local`
+- [x] Push notification entitlements and EAS project ID confirmed in `app.json`
 
-### Must Fix (blocking)
-- [ ] **BUG-1** — Remove or gate production `console.log` in `api.ts` (tokens leaking to logs)
-- [ ] **BUG-2** — Add `Completion` to imports in `api.ts`
-- [ ] **BUG-3** — Fix `addDays()` to use app timezone in `AddTaskSheet`
-
-### Should Fix (quality)
-- [ ] **BUG-4** — Fix `selectStreak()` timezone mixing
-- [ ] **BUG-5** — Add error feedback for failed task delete
-- [ ] **BUG-6** — Clarify or remove non-functional Adult toggle in Add Member sheet
-- [ ] Verify `EXPO_PUBLIC_API_URL` is set to production API URL in production build (not localhost)
-- [ ] Remove dev-only logging from `app/(app)/_layout.tsx` if any exists
-- [ ] Confirm `eas.json` build profile uses correct environment variables
-- [ ] Confirm push notification entitlements and EAS project ID are set in `app.json`
-
-### Nice to Have
-- [ ] **BUG-9** — Remove unused `profilePoints` style
-- [ ] **BUG-7** — Rename SecureStore keys to `chorify.*` (requires migration on first launch)
-- [ ] Add `EXPO_PUBLIC_API_URL` validation to fail fast in production if missing
+### Remaining (future releases)
+- [ ] **BUG-7** — Rename legacy SecureStore keys from `keptt.*` to `chorify.*` (requires migration on first launch)
+- [ ] **BUG-10** — Show retry UI when `load()` fails instead of silent empty state
+- [ ] Rate limiting on `/api/auth/login` and `/api/auth/signup`
 
 ### QA Test Cases
 - [ ] Create account → create household → add tasks → complete tasks
@@ -684,46 +680,156 @@ Before submitting to TestFlight, address the following:
 
 ---
 
-## 16. Environment Setup
+## 16. Environment Setup & Building
 
 ### Prerequisites
-- Node 20+, Bun or npm
-- Expo CLI (`npm install -g expo-cli`)
-- EAS CLI (`npm install -g eas-cli`)
-- Turso CLI (for local DB)
-- Vercel CLI (for API)
 
-### Mobile Setup
+| Tool | Purpose |
+|------|---------|
+| Node 20+ | JavaScript runtime |
+| npm | Package manager |
+| Expo CLI (`npm i -g expo-cli`) | `expo start`, `expo prebuild` |
+| EAS CLI (`npm i -g eas-cli`) | Cloud builds (optional) |
+| CocoaPods (`gem install cocoapods`) | iOS dependency manager (Xcode path) |
+| Xcode 16+ | iOS builds and TestFlight submission |
+| Turso CLI | Local DB management |
+| Vercel CLI | Local API dev server |
+
+---
+
+### Local Development Setup
+
+**Mobile:**
 ```bash
 cd mobile
 cp .env.example .env.local
-# Edit EXPO_PUBLIC_API_URL to your machine's LAN IP (e.g. http://192.168.1.X:3000)
-# iOS Simulator cannot use 'localhost' — it resolves to the simulator, not the host
+# Set EXPO_PUBLIC_API_URL to your machine's LAN IP — iOS Simulator cannot use localhost
+# Find your IP:  ipconfig getifaddr en0
+# Example:       EXPO_PUBLIC_API_URL=http://192.168.1.42:3000
 npm install
 npx expo start
 ```
 
-### API Setup
+**API:**
 ```bash
 cd api
 cp .env.example .env.local
-# Required:
+# Required env vars:
 #   TURSO_URL=libsql://your-db.turso.io
 #   TURSO_AUTH_TOKEN=...
 #   JWT_SECRET=<random 32+ char string>
 #   CRON_SECRET=<random 32+ char string>
 npm install
-vercel dev   # or: npm run dev
+vercel dev
 ```
+
+---
 
 ### Building for TestFlight
-```bash
-cd mobile
-eas build --platform ios --profile preview   # Ad-hoc / TestFlight build
-eas submit --platform ios                     # Submit to App Store Connect
+
+There are two paths: **Xcode (local)** or **EAS (cloud)**. Both produce identical binaries. Xcode is faster for one-off builds; EAS is better for CI or team environments.
+
+**Before either path — bump the build number in `app.json`:**
+```json
+"buildNumber": "6"   // increment by 1 each build; Apple rejects duplicates
 ```
 
-Ensure `eas.json` has a `preview` profile with `EXPO_PUBLIC_API_URL` pointing to production.
+---
+
+### Path A — Xcode (local build)
+
+**Requirements:** Xcode 16+, CocoaPods, Apple Developer account, app record in App Store Connect.
+
+#### 1. Generate the native iOS project
+```bash
+cd mobile
+npx expo prebuild --platform ios --clean
+```
+`--clean` wipes any existing `ios/` folder and regenerates it fresh from `app.json` and plugins. The production `EXPO_PUBLIC_API_URL` is baked in from `.env.local` at this step.
+
+#### 2. Install CocoaPods dependencies
+```bash
+cd ios
+pod install
+cd ..
+```
+
+#### 3. Open in Xcode
+```bash
+open ios/Chorify.xcworkspace
+```
+> Always open the `.xcworkspace`, never the `.xcodeproj`.
+
+#### 4. Configure signing
+1. Click the **Chorify** project in the file tree
+2. Select the **Chorify** target → **Signing & Capabilities** tab
+3. Enable **Automatically manage signing**
+4. Set **Team** to your Apple Developer account
+5. Bundle ID should read `com.chorify.app`
+
+#### 5. Archive
+1. Set scheme to **Chorify**, destination to **Any iOS Device (arm64)**
+2. **Product → Archive** (takes 3–5 minutes)
+3. The **Organizer** window opens when complete
+
+#### 6. Upload to TestFlight
+1. Select the archive in Organizer
+2. **Distribute App → App Store Connect → Upload**
+3. Leave all defaults (strip symbols, upload bitcode)
+4. Click **Distribute**
+
+Build appears in App Store Connect → TestFlight within a few minutes. Apple's automated review takes 5–15 minutes before testers can install it.
+
+---
+
+### Path B — EAS (cloud build)
+
+**Requirements:** EAS CLI, logged-in Expo account (`eas whoami`).
+
+The `EXPO_PUBLIC_API_URL` for production is already set in `eas.json`:
+```json
+"production": {
+  "distribution": "store",
+  "autoIncrement": true,
+  "env": {
+    "EXPO_PUBLIC_API_URL": "https://api-eight-pi-38.vercel.app"
+  }
+}
+```
+`autoIncrement: true` means EAS manages the build number automatically — no need to edit `app.json` manually when using this path.
+
+#### Build and upload in one command
+```bash
+cd mobile
+eas build --platform ios --profile production --auto-submit
+```
+
+Or as two separate steps:
+```bash
+eas build --platform ios --profile production   # triggers cloud build
+eas submit --platform ios --latest              # uploads completed build
+```
+
+EAS emails you when the build completes (~10–15 minutes). The build then appears in App Store Connect → TestFlight.
+
+---
+
+### Build Profile Summary
+
+| Profile | Distribution | Use case |
+|---------|-------------|----------|
+| `development` | Internal (ad-hoc) | Dev client on your own device |
+| `preview` | Internal (ad-hoc) | Ad-hoc testing without App Store |
+| `production` | Store | TestFlight + App Store submission |
+
+---
+
+### Adding TestFlight Testers
+
+1. Go to [appstoreconnect.apple.com](https://appstoreconnect.apple.com)
+2. Chorify → **TestFlight** → select the build
+3. **Internal testers** (your team, up to 100): available immediately after upload
+4. **External testers** (public beta): requires a brief Beta App Review — usually same day
 
 ---
 
