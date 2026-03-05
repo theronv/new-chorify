@@ -119,8 +119,8 @@ Uses **Expo Router** (file-based, React Navigation underneath).
 | `/(auth)/login` | Login |
 | `/(auth)/signup` | Signup |
 | `/onboarding` | Create or Join household |
-| `/(app)/(home)` | **Today** — overdue + due today + completed today |
-| `/(app)/family` | **Tasks** — all tasks with leaderboard + filters |
+| `/(app)/(home)` | **Today** — overdue + due today + completed today; filter by room, category, member |
+| `/(app)/family` | **Tasks** — all tasks with leaderboard; filter by room, member, date |
 | `/(app)/settings` | **Settings** — household, profile, rooms, categories, notifications |
 | `/(app)/settings/rooms` | Manage Rooms sub-screen |
 | `/(app)/settings/categories` | Manage Categories sub-screen |
@@ -435,6 +435,35 @@ const catColor = getCategoryColor(category.sort_order)
 3. **Complete** — Alert confirm → `tasksApi.complete()` → `addCompletion()` + `updateTask({ next_due, last_completed })` + confetti
 4. **Edit** — Long press (400ms, haptic) → `EditTaskSheet`
 5. **Delete** — Swipe left (threshold −80px) → Alert confirm → animate off-screen → `tasksApi.delete()` → `removeTask()`
+
+### Task Filtering
+
+**Today screen** — three independent filter pills in the header, each opening a modal picker:
+
+| Filter | Options | State |
+|--------|---------|-------|
+| Room | All Rooms · each room | `filterRoomId: string \| null` |
+| Category | All Categories · each category (with emoji) | `filterCategory: string \| null` (matched against `task.category` name) |
+| Member | All Members · Unassigned · each member | `filterAssignedTo: string \| null` (`'unassigned'` = `task.assigned_to === null`) |
+
+Filters are applied with `.filter()` before partitioning into Overdue / Due Today / Completed Today sections. All three filters are AND-combined.
+
+**Tasks screen** — four filter pills inline with the task list:
+
+| Filter | Options | Notes |
+|--------|---------|-------|
+| All | Resets all filters | Active when no other filter is set |
+| Room | All Rooms · each room | Single-select |
+| Member | All Members · each member | Single-select |
+| Date | All Dates · Overdue · Today · This Week · No Date | Completed-today tasks always pass the date filter |
+
+The date filter options map to these `task.next_due` conditions:
+- **Overdue** — `next_due < today`
+- **Today** — `next_due === today`
+- **This Week** — `next_due <= weekStr` (7 days from now, via `getWeekFromNowString()`)
+- **No Date** — `next_due === null`
+
+All picker modals use a `ScrollView` with `maxHeight: 320` so they scroll when the list is long.
 
 ### Swipe-to-Delete (TaskCard)
 Uses `PanResponder`. Horizontal-only gesture detected when `|dx| > 10` and `|dx| > |dy| × 1.5` and `dx < 0`. On release past threshold, springs to −80px while Alert shows. Confirmed → animate to −500px (off-screen) then call `onDelete`.
