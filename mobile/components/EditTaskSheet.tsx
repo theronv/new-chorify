@@ -277,43 +277,45 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                 <View style={styles.dropdownPopupWrapper} pointerEvents="box-none">
                   <View style={styles.dropdownPopup}>
                     <Text style={styles.dropdownPopupTitle}>Room</Text>
-                    <TouchableOpacity
-                      style={[styles.dropdownOption, roomId === null && styles.dropdownOptionNone]}
-                      onPress={() => { setRoomId(null); setRoomOpen(false) }}
-                      activeOpacity={0.65}
-                    >
-                      <Text style={styles.dropdownOptionEmoji}>📍</Text>
-                      <Text style={[styles.dropdownOptionLabel, roomId === null && { color: Colors.textSecondary }]}>
-                        No room
-                      </Text>
-                      {roomId === null && (
-                        <Text style={[styles.dropdownOptionCheck, { color: Colors.textSecondary }]}>✓</Text>
+                    <ScrollView showsVerticalScrollIndicator={false} style={styles.dropdownScroll}>
+                      <TouchableOpacity
+                        style={[styles.dropdownOption, roomId === null && styles.dropdownOptionNone]}
+                        onPress={() => { setRoomId(null); setRoomOpen(false) }}
+                        activeOpacity={0.65}
+                      >
+                        <Text style={styles.dropdownOptionEmoji}>📍</Text>
+                        <Text style={[styles.dropdownOptionLabel, roomId === null && { color: Colors.textSecondary }]}>
+                          No room
+                        </Text>
+                        {roomId === null && (
+                          <Text style={[styles.dropdownOptionCheck, { color: Colors.textSecondary }]}>✓</Text>
+                        )}
+                      </TouchableOpacity>
+                      {rooms.map((r) => {
+                        const isSelected = roomId === r.id
+                        return (
+                          <TouchableOpacity
+                            key={r.id}
+                            style={[styles.dropdownOption, isSelected && styles.dropdownOptionRoomSelected]}
+                            onPress={() => { setRoomId(r.id); setRoomOpen(false) }}
+                            activeOpacity={0.65}
+                          >
+                            <Text style={styles.dropdownOptionEmoji}>{r.emoji}</Text>
+                            <Text style={[styles.dropdownOptionLabel, isSelected && styles.dropdownOptionRoomLabel]}>
+                              {r.name}
+                            </Text>
+                            {isSelected && (
+                              <Text style={[styles.dropdownOptionCheck, styles.dropdownOptionRoomCheck]}>✓</Text>
+                            )}
+                          </TouchableOpacity>
+                        )
+                      })}
+                      {rooms.length === 0 && (
+                        <Text style={styles.dropdownEmpty}>
+                          No rooms set up yet.{'\n'}Add rooms in Settings → Rooms.
+                        </Text>
                       )}
-                    </TouchableOpacity>
-                    {rooms.map((r) => {
-                      const isSelected = roomId === r.id
-                      return (
-                        <TouchableOpacity
-                          key={r.id}
-                          style={[styles.dropdownOption, isSelected && styles.dropdownOptionRoomSelected]}
-                          onPress={() => { setRoomId(r.id); setRoomOpen(false) }}
-                          activeOpacity={0.65}
-                        >
-                          <Text style={styles.dropdownOptionEmoji}>{r.emoji}</Text>
-                          <Text style={[styles.dropdownOptionLabel, isSelected && styles.dropdownOptionRoomLabel]}>
-                            {r.name}
-                          </Text>
-                          {isSelected && (
-                            <Text style={[styles.dropdownOptionCheck, styles.dropdownOptionRoomCheck]}>✓</Text>
-                          )}
-                        </TouchableOpacity>
-                      )
-                    })}
-                    {rooms.length === 0 && (
-                      <Text style={styles.dropdownEmpty}>
-                        No rooms set up yet.{'\n'}Add rooms in Settings → Rooms.
-                      </Text>
-                    )}
+                    </ScrollView>
                   </View>
                 </View>
               </Modal>
@@ -424,7 +426,7 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                 <DateTimePicker
                   value={pickerDate}
                   mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
                   onChange={(_: DateTimePickerEvent, date?: Date) => {
                     if (date) {
                       setNextDue(date.toLocaleDateString('en-CA'))
@@ -635,6 +637,9 @@ const styles = StyleSheet.create({
   },
   dropdownOptionRoomLabel: { color: Colors.primary },
   dropdownOptionRoomCheck: { color: Colors.primary },
+  dropdownScroll: {
+    maxHeight: 320,
+  },
   dropdownEmpty: {
     fontFamily:        Font.regular,
     fontSize:          FontSize.sm,

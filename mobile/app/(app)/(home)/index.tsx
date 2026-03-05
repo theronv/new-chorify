@@ -47,11 +47,15 @@ export default function HomeScreen() {
   const updateTask    = useHouseholdStore((s) => s.updateTask)
   const removeTask    = useHouseholdStore((s) => s.removeTask)
 
+  type DateFilter = 'all' | 'overdue' | 'today' | 'week'
+
   const [sheetVisible,    setSheetVisible]    = useState(false)
   const [editingTask,     setEditingTask]     = useState<Task | null>(null)
   const [completing,      setCompleting]      = useState<Record<string, boolean>>({})
   const [filterRoomId,    setFilterRoomId]    = useState<string | null>(null)
   const [roomPickerOpen,  setRoomPickerOpen]  = useState(false)
+  const [filterDate,      setFilterDate]      = useState<DateFilter>('all')
+  const [datePickerOpen,  setDatePickerOpen]  = useState(false)
   const [deleteError,     setDeleteError]     = useState<string | null>(null)
 
   const confettiRef = useRef<any>(null)
@@ -61,12 +65,35 @@ export default function HomeScreen() {
 
   const activeRoom = filterRoomId ? rooms.find((r) => r.id === filterRoomId) ?? null : null
 
-  const visibleTasks = filterRoomId
+  const weekEnd = (() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 7)
+    return d.toLocaleDateString('en-CA')
+  })()
+
+  const DATE_FILTER_LABELS: Record<string, string> = {
+    all:     '📅 All Dates',
+    overdue: '🔴 Overdue',
+    today:   '📌 Today',
+    week:    '📆 This Week',
+  }
+
+  const roomFiltered = filterRoomId
     ? tasks.filter((t) => t.room_id === filterRoomId)
     : tasks
 
+  const visibleTasks: Task[] = (() => {
+    switch (filterDate) {
+      case 'overdue': return roomFiltered.filter((t) => t.next_due !== null && t.next_due < today)
+      case 'today':   return roomFiltered.filter((t) => t.next_due === today || selectIsCompletedToday(t.id, completions))
+      case 'week':    return roomFiltered.filter((t) => t.next_due !== null && t.next_due <= weekEnd || selectIsCompletedToday(t.id, completions))
+      default:        return roomFiltered
+    }
+  })()
+
   const overdue:   Task[] = []
   const dueToday:  Task[] = []
+  const upcoming:  Task[] = []
   const completed: Task[] = []
 
   for (const task of visibleTasks) {
@@ -76,10 +103,12 @@ export default function HomeScreen() {
       dueToday.push(task)
     } else if (task.next_due != null && task.next_due < today) {
       overdue.push(task)
+    } else if (filterDate === 'week' && task.next_due != null && task.next_due > today && task.next_due <= weekEnd) {
+      upcoming.push(task)
     }
   }
 
-  const hasPending = overdue.length + dueToday.length > 0
+  const hasPending = overdue.length + dueToday.length + upcoming.length > 0
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -158,19 +187,31 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Room filter — only shown when at least one room exists */}
-        {rooms.length > 0 && (
+        {/* Filter row — room + date */}
+        <View style={styles.filterRow}>
+          {rooms.length > 0 && (
+            <TouchableOpacity
+              style={[styles.filterBtn, activeRoom && styles.filterBtnActive]}
+              onPress={() => setRoomPickerOpen(true)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.filterBtnText, activeRoom && styles.filterBtnTextActive]}>
+                {activeRoom ? `${activeRoom.emoji} ${activeRoom.name}` : '🏠 All Rooms'}
+              </Text>
+              <Text style={[styles.filterChevron, activeRoom && styles.filterBtnTextActive]}>▾</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
-            style={[styles.filterBtn, activeRoom && styles.filterBtnActive]}
-            onPress={() => setRoomPickerOpen(true)}
+            style={[styles.filterBtn, filterDate !== 'all' && styles.filterBtnActive]}
+            onPress={() => setDatePickerOpen(true)}
             activeOpacity={0.75}
           >
-            <Text style={[styles.filterBtnText, activeRoom && styles.filterBtnTextActive]}>
-              {activeRoom ? `${activeRoom.emoji} ${activeRoom.name}` : '🏠 All Rooms'}
+            <Text style={[styles.filterBtnText, filterDate !== 'all' && styles.filterBtnTextActive]}>
+              {DATE_FILTER_LABELS[filterDate]}
             </Text>
-            <Text style={[styles.filterChevron, activeRoom && styles.filterBtnTextActive]}>▾</Text>
+            <Text style={[styles.filterChevron, filterDate !== 'all' && styles.filterBtnTextActive]}>▾</Text>
           </TouchableOpacity>
-        )}
+        </View>
       </View>
 
       {/* Room filter picker modal */}
@@ -188,31 +229,74 @@ export default function HomeScreen() {
           <View style={[styles.pickerPopup, isTablet && { maxWidth: 420 }]}>
             <Text style={styles.pickerTitle}>Filter by Room</Text>
 
-            {/* All Rooms */}
-            <TouchableOpacity
-              style={[styles.pickerOption, filterRoomId === null && styles.pickerOptionSelected]}
-              onPress={() => { setFilterRoomId(null); setRoomPickerOpen(false) }}
-              activeOpacity={0.65}
-            >
-              <Text style={styles.pickerOptionEmoji}>🏠</Text>
-              <Text style={[styles.pickerOptionLabel, filterRoomId === null && styles.pickerOptionLabelSelected]}>
-                All Rooms
-              </Text>
-              {filterRoomId === null && <Text style={styles.pickerCheck}>✓</Text>}
-            </TouchableOpacity>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.pickerScroll}>
+              {/* All Rooms */}
+              <TouchableOpacity
+                style={[styles.pickerOption, filterRoomId === null && styles.pickerOptionSelected]}
+                onPress={() => { setFilterRoomId(null); setRoomPickerOpen(false) }}
+                activeOpacity={0.65}
+              >
+                <Text style={styles.pickerOptionEmoji}>🏠</Text>
+                <Text style={[styles.pickerOptionLabel, filterRoomId === null && styles.pickerOptionLabelSelected]}>
+                  All Rooms
+                </Text>
+                {filterRoomId === null && <Text style={styles.pickerCheck}>✓</Text>}
+              </TouchableOpacity>
 
-            {rooms.map((room) => {
-              const selected = filterRoomId === room.id
+              {rooms.map((room) => {
+                const selected = filterRoomId === room.id
+                return (
+                  <TouchableOpacity
+                    key={room.id}
+                    style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
+                    onPress={() => { setFilterRoomId(room.id); setRoomPickerOpen(false) }}
+                    activeOpacity={0.65}
+                  >
+                    <Text style={styles.pickerOptionEmoji}>{room.emoji}</Text>
+                    <Text style={[styles.pickerOptionLabel, selected && styles.pickerOptionLabelSelected]}>
+                      {room.name}
+                    </Text>
+                    {selected && <Text style={styles.pickerCheck}>✓</Text>}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Date filter picker modal */}
+      <Modal
+        visible={datePickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDatePickerOpen(false)}
+      >
+        <Pressable
+          style={[StyleSheet.absoluteFill, styles.pickerBackdrop]}
+          onPress={() => setDatePickerOpen(false)}
+        />
+        <View style={styles.pickerWrapper} pointerEvents="box-none">
+          <View style={[styles.pickerPopup, isTablet && { maxWidth: 420 }]}>
+            <Text style={styles.pickerTitle}>Filter by Due Date</Text>
+
+            {([
+              { value: 'all',     emoji: '📅', label: 'All Dates' },
+              { value: 'overdue', emoji: '🔴', label: 'Overdue' },
+              { value: 'today',   emoji: '📌', label: 'Today' },
+              { value: 'week',    emoji: '📆', label: 'This Week' },
+            ] as { value: string; emoji: string; label: string }[]).map((opt) => {
+              const selected = filterDate === opt.value
               return (
                 <TouchableOpacity
-                  key={room.id}
+                  key={opt.value}
                   style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
-                  onPress={() => { setFilterRoomId(room.id); setRoomPickerOpen(false) }}
+                  onPress={() => { setFilterDate(opt.value as 'all' | 'overdue' | 'today' | 'week'); setDatePickerOpen(false) }}
                   activeOpacity={0.65}
                 >
-                  <Text style={styles.pickerOptionEmoji}>{room.emoji}</Text>
+                  <Text style={styles.pickerOptionEmoji}>{opt.emoji}</Text>
                   <Text style={[styles.pickerOptionLabel, selected && styles.pickerOptionLabelSelected]}>
-                    {room.name}
+                    {opt.label}
                   </Text>
                   {selected && <Text style={styles.pickerCheck}>✓</Text>}
                 </TouchableOpacity>
@@ -288,6 +372,26 @@ export default function HomeScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>Due Today</Text>
             {dueToday.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                members={members}
+                isCompleted={false}
+                rooms={rooms}
+                isCompleting={!!completing[task.id]}
+                onComplete={() => handleComplete(task)}
+                onDelete={() => handleDelete(task)}
+                onLongPress={() => setEditingTask(task)}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Upcoming (only shown under "This Week" filter) */}
+        {upcoming.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Upcoming This Week</Text>
+            {upcoming.map((task) => (
               <TaskCard
                 key={task.id}
                 task={task}
@@ -406,13 +510,20 @@ const styles = StyleSheet.create({
     marginTop:  2,
   },
 
-  // Room filter button
+  // Filter row
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap:      'wrap',
+    gap:           8,
+    marginTop:     10,
+  },
+
+  // Room/date filter button
   filterBtn: {
     flexDirection:     'row',
     alignItems:        'center',
     alignSelf:         'flex-start',
     gap:               6,
-    marginTop:         10,
     paddingHorizontal: 12,
     paddingVertical:   7,
     borderRadius:      Radius.full,
@@ -436,6 +547,10 @@ const styles = StyleSheet.create({
     fontFamily: Font.regular,
     fontSize:   12,
     color:      Colors.textSecondary,
+  },
+
+  pickerScroll: {
+    maxHeight: 320,
   },
 
   // Room picker modal
