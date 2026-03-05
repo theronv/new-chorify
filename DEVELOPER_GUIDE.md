@@ -735,18 +735,69 @@ vercel dev
 
 ---
 
-### Building for TestFlight
+### Testing on Device (Without TestFlight)
 
-There are two paths: **Xcode (local)** or **EAS (cloud)**. Both produce identical binaries. Xcode is faster for one-off builds; EAS is better for CI or team environments.
+There are three scenarios with different server requirements:
 
-**Before either path — bump the build number in `app.json`:**
-```json
-"buildNumber": "6"   // increment by 1 each build; Apple rejects duplicates
+#### 1. Production `.ipa` → TestFlight (no server needed)
+`eas build --local` (or Xcode Archive) bundles the JS into the `.ipa`. Once built, there is no dependency on Metro or any local server — everything is self-contained. Submit the `.ipa` directly:
+```bash
+eas submit --platform ios --latest
 ```
+or drag the `.ipa` into Transporter.
+
+#### 2. Running from Xcode directly (Metro required)
+If you open the `ios/` folder in Xcode and hit Run (debug scheme), Expo's JS runtime looks for a Metro bundler over the network to load the JS bundle. You must have Metro running first:
+```bash
+cd mobile && npx expo start
+```
+Without this, the app will hang on launch searching for the dev server.
+
+#### 3. Quick on-device testing without TestFlight
+The fastest way to install and run on a physical device during development:
+```bash
+cd mobile && npx expo run:ios --device
+```
+This builds a debug `.app`, installs it on a connected device, and starts Metro automatically. No need to go through TestFlight — useful for rapid iteration on UI changes.
 
 ---
 
-### Path A — Xcode (local build)
+### Building for TestFlight
+
+There are two paths: **EAS local build** (preferred) or **Xcode Archive**. Both produce identical binaries.
+
+> **Default:** Always build locally with `eas build --local`. This uses your Mac's Xcode toolchain, bypasses the EAS Free plan's monthly cloud build quota, and keeps credentials managed by EAS (no manual signing setup).
+
+`autoIncrement: true` in `eas.json` means EAS manages the build number automatically — no need to edit `app.json` manually.
+
+---
+
+### Path A — EAS Local Build (preferred)
+
+**Requirements:** EAS CLI, logged-in Expo account (`eas whoami`), Xcode 16+.
+
+The `EXPO_PUBLIC_API_URL` for production is set in `eas.json` and the build number is auto-incremented remotely.
+
+#### Build
+```bash
+cd mobile
+eas build --platform ios --profile production --local
+```
+This runs the full Xcode build on your Mac and outputs a `.ipa` file (typically in `~/Library/Developer/Xcode/Archives` or the current directory).
+
+#### Submit to TestFlight
+```bash
+eas submit --platform ios --latest
+```
+Build appears in App Store Connect → TestFlight within a few minutes. Apple's automated review takes 5–15 minutes before testers can install it.
+
+> **Note:** The EAS Free plan has a limited number of *cloud* iOS builds per month. Local builds (`--local`) are unlimited and bypass this quota entirely.
+
+---
+
+### Path B — Xcode Archive (manual)
+
+Use this if EAS CLI is unavailable or you need full control over Xcode build settings.
 
 **Requirements:** Xcode 16+, CocoaPods, Apple Developer account, app record in App Store Connect.
 
@@ -777,50 +828,19 @@ open ios/Chorify.xcworkspace
 4. Set **Team** to your Apple Developer account
 5. Bundle ID should read `com.chorify.app`
 
-#### 5. Archive
+#### 5. Bump the build number
+In Xcode under **General → Identity**, increment the Build field (or edit `app.json` → `ios.buildNumber` before prebuild).
+
+#### 6. Archive
 1. Set scheme to **Chorify**, destination to **Any iOS Device (arm64)**
 2. **Product → Archive** (takes 3–5 minutes)
 3. The **Organizer** window opens when complete
 
-#### 6. Upload to TestFlight
+#### 7. Upload to TestFlight
 1. Select the archive in Organizer
 2. **Distribute App → App Store Connect → Upload**
 3. Leave all defaults (strip symbols, upload bitcode)
 4. Click **Distribute**
-
-Build appears in App Store Connect → TestFlight within a few minutes. Apple's automated review takes 5–15 minutes before testers can install it.
-
----
-
-### Path B — EAS (cloud build)
-
-**Requirements:** EAS CLI, logged-in Expo account (`eas whoami`).
-
-The `EXPO_PUBLIC_API_URL` for production is already set in `eas.json`:
-```json
-"production": {
-  "distribution": "store",
-  "autoIncrement": true,
-  "env": {
-    "EXPO_PUBLIC_API_URL": "https://api-eight-pi-38.vercel.app"
-  }
-}
-```
-`autoIncrement: true` means EAS manages the build number automatically — no need to edit `app.json` manually when using this path.
-
-#### Build and upload in one command
-```bash
-cd mobile
-eas build --platform ios --profile production --auto-submit
-```
-
-Or as two separate steps:
-```bash
-eas build --platform ios --profile production   # triggers cloud build
-eas submit --platform ios --latest              # uploads completed build
-```
-
-EAS emails you when the build completes (~10–15 minutes). The build then appears in App Store Connect → TestFlight.
 
 ---
 

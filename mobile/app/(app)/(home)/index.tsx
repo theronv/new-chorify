@@ -40,6 +40,7 @@ export default function HomeScreen() {
   const completions   = useHouseholdStore((s) => s.completions)
   const members       = useHouseholdStore((s) => s.members)
   const rooms         = useHouseholdStore((s) => s.rooms)
+  const categories    = useHouseholdStore((s) => s.categories)
   const isLoading     = useHouseholdStore((s) => s.isLoading)
   const loadError     = useHouseholdStore((s) => s.loadError)
   const load          = useHouseholdStore((s) => s.load)
@@ -47,53 +48,38 @@ export default function HomeScreen() {
   const updateTask    = useHouseholdStore((s) => s.updateTask)
   const removeTask    = useHouseholdStore((s) => s.removeTask)
 
-  type DateFilter = 'all' | 'overdue' | 'today' | 'week'
-
-  const [sheetVisible,    setSheetVisible]    = useState(false)
-  const [editingTask,     setEditingTask]     = useState<Task | null>(null)
-  const [completing,      setCompleting]      = useState<Record<string, boolean>>({})
-  const [filterRoomId,    setFilterRoomId]    = useState<string | null>(null)
-  const [roomPickerOpen,  setRoomPickerOpen]  = useState(false)
-  const [filterDate,      setFilterDate]      = useState<DateFilter>('all')
-  const [datePickerOpen,  setDatePickerOpen]  = useState(false)
-  const [deleteError,     setDeleteError]     = useState<string | null>(null)
+  const [sheetVisible,       setSheetVisible]       = useState(false)
+  const [editingTask,        setEditingTask]        = useState<Task | null>(null)
+  const [completing,         setCompleting]         = useState<Record<string, boolean>>({})
+  const [filterRoomId,       setFilterRoomId]       = useState<string | null>(null)
+  const [roomPickerOpen,     setRoomPickerOpen]     = useState(false)
+  const [filterCategory,     setFilterCategory]     = useState<string | null>(null)
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
+  const [filterAssignedTo,   setFilterAssignedTo]   = useState<string | null>(null)
+  const [memberPickerOpen,   setMemberPickerOpen]   = useState(false)
+  const [deleteError,        setDeleteError]        = useState<string | null>(null)
 
   const confettiRef = useRef<any>(null)
   const today       = getTodayString()
 
   // ── Filter + partition tasks into three sections ──────────────────────────
 
-  const activeRoom = filterRoomId ? rooms.find((r) => r.id === filterRoomId) ?? null : null
+  const activeRoom     = filterRoomId     ? rooms.find((r) => r.id === filterRoomId)           ?? null : null
+  const activeCategory = filterCategory   ? categories.find((c) => c.name === filterCategory)  ?? null : null
+  const activeMember   = filterAssignedTo && filterAssignedTo !== 'unassigned'
+    ? members.find((m) => m.id === filterAssignedTo) ?? null
+    : null
 
-  const weekEnd = (() => {
-    const d = new Date()
-    d.setDate(d.getDate() + 7)
-    return d.toLocaleDateString('en-CA')
-  })()
-
-  const DATE_FILTER_LABELS: Record<string, string> = {
-    all:     '📅 All Dates',
-    overdue: '🔴 Overdue',
-    today:   '📌 Today',
-    week:    '📆 This Week',
-  }
-
-  const roomFiltered = filterRoomId
-    ? tasks.filter((t) => t.room_id === filterRoomId)
-    : tasks
-
-  const visibleTasks: Task[] = (() => {
-    switch (filterDate) {
-      case 'overdue': return roomFiltered.filter((t) => t.next_due !== null && t.next_due < today)
-      case 'today':   return roomFiltered.filter((t) => t.next_due === today || selectIsCompletedToday(t.id, completions))
-      case 'week':    return roomFiltered.filter((t) => t.next_due !== null && t.next_due <= weekEnd || selectIsCompletedToday(t.id, completions))
-      default:        return roomFiltered
-    }
-  })()
+  const visibleTasks = tasks.filter((t) => {
+    if (filterRoomId && t.room_id !== filterRoomId) return false
+    if (filterCategory && t.category !== filterCategory) return false
+    if (filterAssignedTo === 'unassigned' && t.assigned_to !== null) return false
+    if (filterAssignedTo && filterAssignedTo !== 'unassigned' && t.assigned_to !== filterAssignedTo) return false
+    return true
+  })
 
   const overdue:   Task[] = []
   const dueToday:  Task[] = []
-  const upcoming:  Task[] = []
   const completed: Task[] = []
 
   for (const task of visibleTasks) {
@@ -103,12 +89,10 @@ export default function HomeScreen() {
       dueToday.push(task)
     } else if (task.next_due != null && task.next_due < today) {
       overdue.push(task)
-    } else if (filterDate === 'week' && task.next_due != null && task.next_due > today && task.next_due <= weekEnd) {
-      upcoming.push(task)
     }
   }
 
-  const hasPending = overdue.length + dueToday.length + upcoming.length > 0
+  const hasPending = overdue.length + dueToday.length > 0
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -187,7 +171,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Filter row — room + date */}
+        {/* Filter row — room + category + member */}
         <View style={styles.filterRow}>
           {rooms.length > 0 && (
             <TouchableOpacity
@@ -201,15 +185,31 @@ export default function HomeScreen() {
               <Text style={[styles.filterChevron, activeRoom && styles.filterBtnTextActive]}>▾</Text>
             </TouchableOpacity>
           )}
+          {categories.length > 0 && (
+            <TouchableOpacity
+              style={[styles.filterBtn, activeCategory && styles.filterBtnActive]}
+              onPress={() => setCategoryPickerOpen(true)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.filterBtnText, activeCategory && styles.filterBtnTextActive]}>
+                {activeCategory ? `${activeCategory.emoji} ${activeCategory.name}` : '🏷 Category'}
+              </Text>
+              <Text style={[styles.filterChevron, activeCategory && styles.filterBtnTextActive]}>▾</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
-            style={[styles.filterBtn, filterDate !== 'all' && styles.filterBtnActive]}
-            onPress={() => setDatePickerOpen(true)}
+            style={[styles.filterBtn, filterAssignedTo !== null && styles.filterBtnActive]}
+            onPress={() => setMemberPickerOpen(true)}
             activeOpacity={0.75}
           >
-            <Text style={[styles.filterBtnText, filterDate !== 'all' && styles.filterBtnTextActive]}>
-              {DATE_FILTER_LABELS[filterDate]}
+            <Text style={[styles.filterBtnText, filterAssignedTo !== null && styles.filterBtnTextActive]}>
+              {filterAssignedTo === 'unassigned'
+                ? '⭕ Unassigned'
+                : activeMember
+                ? `${activeMember.emoji} ${activeMember.display_name}`
+                : '👤 Member'}
             </Text>
-            <Text style={[styles.filterChevron, filterDate !== 'all' && styles.filterBtnTextActive]}>▾</Text>
+            <Text style={[styles.filterChevron, filterAssignedTo !== null && styles.filterBtnTextActive]}>▾</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -265,43 +265,109 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      {/* Date filter picker modal */}
+      {/* Category filter picker modal */}
       <Modal
-        visible={datePickerOpen}
+        visible={categoryPickerOpen}
         transparent
         animationType="fade"
-        onRequestClose={() => setDatePickerOpen(false)}
+        onRequestClose={() => setCategoryPickerOpen(false)}
       >
         <Pressable
           style={[StyleSheet.absoluteFill, styles.pickerBackdrop]}
-          onPress={() => setDatePickerOpen(false)}
+          onPress={() => setCategoryPickerOpen(false)}
         />
         <View style={styles.pickerWrapper} pointerEvents="box-none">
           <View style={[styles.pickerPopup, isTablet && { maxWidth: 420 }]}>
-            <Text style={styles.pickerTitle}>Filter by Due Date</Text>
+            <Text style={styles.pickerTitle}>Filter by Category</Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.pickerScroll}>
+              <TouchableOpacity
+                style={[styles.pickerOption, filterCategory === null && styles.pickerOptionSelected]}
+                onPress={() => { setFilterCategory(null); setCategoryPickerOpen(false) }}
+                activeOpacity={0.65}
+              >
+                <Text style={styles.pickerOptionEmoji}>📦</Text>
+                <Text style={[styles.pickerOptionLabel, filterCategory === null && styles.pickerOptionLabelSelected]}>
+                  All Categories
+                </Text>
+                {filterCategory === null && <Text style={styles.pickerCheck}>✓</Text>}
+              </TouchableOpacity>
+              {categories.map((cat) => {
+                const selected = filterCategory === cat.name
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
+                    onPress={() => { setFilterCategory(cat.name); setCategoryPickerOpen(false) }}
+                    activeOpacity={0.65}
+                  >
+                    <Text style={styles.pickerOptionEmoji}>{cat.emoji}</Text>
+                    <Text style={[styles.pickerOptionLabel, selected && styles.pickerOptionLabelSelected]}>
+                      {cat.name}
+                    </Text>
+                    {selected && <Text style={styles.pickerCheck}>✓</Text>}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
-            {([
-              { value: 'all',     emoji: '📅', label: 'All Dates' },
-              { value: 'overdue', emoji: '🔴', label: 'Overdue' },
-              { value: 'today',   emoji: '📌', label: 'Today' },
-              { value: 'week',    emoji: '📆', label: 'This Week' },
-            ] as { value: string; emoji: string; label: string }[]).map((opt) => {
-              const selected = filterDate === opt.value
-              return (
-                <TouchableOpacity
-                  key={opt.value}
-                  style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
-                  onPress={() => { setFilterDate(opt.value as 'all' | 'overdue' | 'today' | 'week'); setDatePickerOpen(false) }}
-                  activeOpacity={0.65}
-                >
-                  <Text style={styles.pickerOptionEmoji}>{opt.emoji}</Text>
-                  <Text style={[styles.pickerOptionLabel, selected && styles.pickerOptionLabelSelected]}>
-                    {opt.label}
-                  </Text>
-                  {selected && <Text style={styles.pickerCheck}>✓</Text>}
-                </TouchableOpacity>
-              )
-            })}
+      {/* Member filter picker modal */}
+      <Modal
+        visible={memberPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMemberPickerOpen(false)}
+      >
+        <Pressable
+          style={[StyleSheet.absoluteFill, styles.pickerBackdrop]}
+          onPress={() => setMemberPickerOpen(false)}
+        />
+        <View style={styles.pickerWrapper} pointerEvents="box-none">
+          <View style={[styles.pickerPopup, isTablet && { maxWidth: 420 }]}>
+            <Text style={styles.pickerTitle}>Filter by Member</Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.pickerScroll}>
+              <TouchableOpacity
+                style={[styles.pickerOption, filterAssignedTo === null && styles.pickerOptionSelected]}
+                onPress={() => { setFilterAssignedTo(null); setMemberPickerOpen(false) }}
+                activeOpacity={0.65}
+              >
+                <Text style={styles.pickerOptionEmoji}>👥</Text>
+                <Text style={[styles.pickerOptionLabel, filterAssignedTo === null && styles.pickerOptionLabelSelected]}>
+                  All Members
+                </Text>
+                {filterAssignedTo === null && <Text style={styles.pickerCheck}>✓</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.pickerOption, filterAssignedTo === 'unassigned' && styles.pickerOptionSelected]}
+                onPress={() => { setFilterAssignedTo('unassigned'); setMemberPickerOpen(false) }}
+                activeOpacity={0.65}
+              >
+                <Text style={styles.pickerOptionEmoji}>⭕</Text>
+                <Text style={[styles.pickerOptionLabel, filterAssignedTo === 'unassigned' && styles.pickerOptionLabelSelected]}>
+                  Unassigned
+                </Text>
+                {filterAssignedTo === 'unassigned' && <Text style={styles.pickerCheck}>✓</Text>}
+              </TouchableOpacity>
+              {members.map((member) => {
+                const selected = filterAssignedTo === member.id
+                return (
+                  <TouchableOpacity
+                    key={member.id}
+                    style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
+                    onPress={() => { setFilterAssignedTo(member.id); setMemberPickerOpen(false) }}
+                    activeOpacity={0.65}
+                  >
+                    <Text style={styles.pickerOptionEmoji}>{member.emoji}</Text>
+                    <Text style={[styles.pickerOptionLabel, selected && styles.pickerOptionLabelSelected]}>
+                      {member.display_name}
+                    </Text>
+                    {selected && <Text style={styles.pickerCheck}>✓</Text>}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -387,36 +453,18 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Upcoming (only shown under "This Week" filter) */}
-        {upcoming.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Upcoming This Week</Text>
-            {upcoming.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                members={members}
-                isCompleted={false}
-                rooms={rooms}
-                isCompleting={!!completing[task.id]}
-                onComplete={() => handleComplete(task)}
-                onDelete={() => handleDelete(task)}
-                onLongPress={() => setEditingTask(task)}
-              />
-            ))}
-          </View>
-        )}
-
         {/* Empty states */}
         {!hasPending && completed.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>{activeRoom ? activeRoom.emoji : '📋'}</Text>
+            <Text style={styles.emptyEmoji}>
+              {filterRoomId || filterCategory || filterAssignedTo ? '🔍' : '📋'}
+            </Text>
             <Text style={styles.emptyTitle}>
-              {activeRoom ? `No tasks in ${activeRoom.name}` : 'No tasks yet'}
+              {filterRoomId || filterCategory || filterAssignedTo ? 'No matching tasks' : 'No tasks yet'}
             </Text>
             <Text style={styles.emptyBody}>
-              {activeRoom
-                ? 'No tasks are due here today.'
+              {filterRoomId || filterCategory || filterAssignedTo
+                ? 'Nothing due today matches this filter.'
                 : 'Tap the + button to add your first task.'}
             </Text>
           </View>

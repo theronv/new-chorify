@@ -61,6 +61,8 @@ export default function TasksScreen() {
   const updateTask    = useHouseholdStore((s) => s.updateTask)
   const removeTask    = useHouseholdStore((s) => s.removeTask)
 
+  type DateFilter = 'all' | 'overdue' | 'today' | 'week' | 'none'
+
   // Task sheet state
   const [sheetVisible, setSheetVisible]   = useState(false)
   const [editingTask, setEditingTask]     = useState<Task | null>(null)
@@ -68,10 +70,12 @@ export default function TasksScreen() {
   const [deleteError, setDeleteError]     = useState<string | null>(null)
 
   // Filter state
-  const [filterRoomId, setFilterRoomId]       = useState<string | null>(null)
-  const [filterMemberId, setFilterMemberId]   = useState<string | null>(null)
-  const [roomPickerOpen, setRoomPickerOpen]   = useState(false)
+  const [filterRoomId,    setFilterRoomId]    = useState<string | null>(null)
+  const [filterMemberId,  setFilterMemberId]  = useState<string | null>(null)
+  const [filterDate,      setFilterDate]      = useState<DateFilter>('all')
+  const [roomPickerOpen,  setRoomPickerOpen]  = useState(false)
   const [memberPickerOpen, setMemberPickerOpen] = useState(false)
+  const [datePickerOpen,  setDatePickerOpen]  = useState(false)
 
   const confettiRef = useRef<any>(null)
 
@@ -92,6 +96,17 @@ export default function TasksScreen() {
   const visibleTasks = tasks.filter((t) => {
     if (filterRoomId   && t.room_id     !== filterRoomId)   return false
     if (filterMemberId && t.assigned_to !== filterMemberId) return false
+    if (filterDate !== 'all') {
+      const isCompleted = selectIsCompletedToday(t.id, completions)
+      if (!isCompleted) {
+        switch (filterDate) {
+          case 'overdue': if (!(t.next_due !== null && t.next_due < today))   return false; break
+          case 'today':   if (t.next_due !== today)                           return false; break
+          case 'week':    if (!(t.next_due !== null && t.next_due <= weekStr)) return false; break
+          case 'none':    if (t.next_due !== null)                             return false; break
+        }
+      }
+    }
     return true
   })
 
@@ -252,11 +267,11 @@ export default function TasksScreen() {
         <View style={styles.filterRow}>
           {/* All */}
           <TouchableOpacity
-            style={[styles.pill, !filterRoomId && !filterMemberId && styles.pillActive]}
-            onPress={() => { setFilterRoomId(null); setFilterMemberId(null) }}
+            style={[styles.pill, !filterRoomId && !filterMemberId && filterDate === 'all' && styles.pillActive]}
+            onPress={() => { setFilterRoomId(null); setFilterMemberId(null); setFilterDate('all') }}
             activeOpacity={0.75}
           >
-            <Text style={[styles.pillText, !filterRoomId && !filterMemberId && styles.pillTextActive]}>
+            <Text style={[styles.pillText, !filterRoomId && !filterMemberId && filterDate === 'all' && styles.pillTextActive]}>
               All
             </Text>
           </TouchableOpacity>
@@ -286,6 +301,21 @@ export default function TasksScreen() {
               </Text>
             </TouchableOpacity>
           )}
+
+          {/* Date */}
+          <TouchableOpacity
+            style={[styles.pill, filterDate !== 'all' && styles.pillActive]}
+            onPress={() => setDatePickerOpen(true)}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.pillText, filterDate !== 'all' && styles.pillTextActive]}>
+              {filterDate === 'overdue' ? '🔴 Overdue'
+                : filterDate === 'today' ? '📌 Today'
+                : filterDate === 'week'  ? '📆 This Week'
+                : filterDate === 'none'  ? '⭕ No Date'
+                : '📅 Date'} ▾
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* ── Task sections ─────────────────────────────────────────────────── */}
@@ -451,36 +481,36 @@ export default function TasksScreen() {
         <View style={styles.pickerWrapper} pointerEvents="box-none">
           <View style={[styles.pickerPopup, isTablet && { maxWidth: 420 }]}>
             <Text style={styles.pickerTitle}>Filter by Room</Text>
-
-            <TouchableOpacity
-              style={[styles.pickerOption, filterRoomId === null && styles.pickerOptionSelected]}
-              onPress={() => { setFilterRoomId(null); setRoomPickerOpen(false) }}
-              activeOpacity={0.65}
-            >
-              <Text style={styles.pickerOptionEmoji}>🏠</Text>
-              <Text style={[styles.pickerOptionLabel, filterRoomId === null && styles.pickerOptionLabelSelected]}>
-                All Rooms
-              </Text>
-              {filterRoomId === null && <Text style={styles.pickerCheck}>✓</Text>}
-            </TouchableOpacity>
-
-            {rooms.map((room) => {
-              const selected = filterRoomId === room.id
-              return (
-                <TouchableOpacity
-                  key={room.id}
-                  style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
-                  onPress={() => { setFilterRoomId(room.id); setRoomPickerOpen(false) }}
-                  activeOpacity={0.65}
-                >
-                  <Text style={styles.pickerOptionEmoji}>{room.emoji}</Text>
-                  <Text style={[styles.pickerOptionLabel, selected && styles.pickerOptionLabelSelected]}>
-                    {room.name}
-                  </Text>
-                  {selected && <Text style={styles.pickerCheck}>✓</Text>}
-                </TouchableOpacity>
-              )
-            })}
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.pickerScroll}>
+              <TouchableOpacity
+                style={[styles.pickerOption, filterRoomId === null && styles.pickerOptionSelected]}
+                onPress={() => { setFilterRoomId(null); setRoomPickerOpen(false) }}
+                activeOpacity={0.65}
+              >
+                <Text style={styles.pickerOptionEmoji}>🏠</Text>
+                <Text style={[styles.pickerOptionLabel, filterRoomId === null && styles.pickerOptionLabelSelected]}>
+                  All Rooms
+                </Text>
+                {filterRoomId === null && <Text style={styles.pickerCheck}>✓</Text>}
+              </TouchableOpacity>
+              {rooms.map((room) => {
+                const selected = filterRoomId === room.id
+                return (
+                  <TouchableOpacity
+                    key={room.id}
+                    style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
+                    onPress={() => { setFilterRoomId(room.id); setRoomPickerOpen(false) }}
+                    activeOpacity={0.65}
+                  >
+                    <Text style={styles.pickerOptionEmoji}>{room.emoji}</Text>
+                    <Text style={[styles.pickerOptionLabel, selected && styles.pickerOptionLabelSelected]}>
+                      {room.name}
+                    </Text>
+                    {selected && <Text style={styles.pickerCheck}>✓</Text>}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -499,31 +529,72 @@ export default function TasksScreen() {
         <View style={styles.pickerWrapper} pointerEvents="box-none">
           <View style={[styles.pickerPopup, isTablet && { maxWidth: 420 }]}>
             <Text style={styles.pickerTitle}>Filter by Member</Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.pickerScroll}>
+              <TouchableOpacity
+                style={[styles.pickerOption, filterMemberId === null && styles.pickerOptionSelected]}
+                onPress={() => { setFilterMemberId(null); setMemberPickerOpen(false) }}
+                activeOpacity={0.65}
+              >
+                <Text style={styles.pickerOptionEmoji}>👥</Text>
+                <Text style={[styles.pickerOptionLabel, filterMemberId === null && styles.pickerOptionLabelSelected]}>
+                  All Members
+                </Text>
+                {filterMemberId === null && <Text style={styles.pickerCheck}>✓</Text>}
+              </TouchableOpacity>
+              {members.map((member) => {
+                const selected = filterMemberId === member.id
+                return (
+                  <TouchableOpacity
+                    key={member.id}
+                    style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
+                    onPress={() => { setFilterMemberId(member.id); setMemberPickerOpen(false) }}
+                    activeOpacity={0.65}
+                  >
+                    <Text style={styles.pickerOptionEmoji}>{member.emoji}</Text>
+                    <Text style={[styles.pickerOptionLabel, selected && styles.pickerOptionLabelSelected]}>
+                      {member.display_name}
+                    </Text>
+                    {selected && <Text style={styles.pickerCheck}>✓</Text>}
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
-            <TouchableOpacity
-              style={[styles.pickerOption, filterMemberId === null && styles.pickerOptionSelected]}
-              onPress={() => { setFilterMemberId(null); setMemberPickerOpen(false) }}
-              activeOpacity={0.65}
-            >
-              <Text style={styles.pickerOptionEmoji}>👥</Text>
-              <Text style={[styles.pickerOptionLabel, filterMemberId === null && styles.pickerOptionLabelSelected]}>
-                All Members
-              </Text>
-              {filterMemberId === null && <Text style={styles.pickerCheck}>✓</Text>}
-            </TouchableOpacity>
-
-            {members.map((member) => {
-              const selected = filterMemberId === member.id
+      {/* Date filter picker modal */}
+      <Modal
+        visible={datePickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDatePickerOpen(false)}
+      >
+        <Pressable
+          style={[StyleSheet.absoluteFill, styles.pickerBackdrop]}
+          onPress={() => setDatePickerOpen(false)}
+        />
+        <View style={styles.pickerWrapper} pointerEvents="box-none">
+          <View style={[styles.pickerPopup, isTablet && { maxWidth: 420 }]}>
+            <Text style={styles.pickerTitle}>Filter by Due Date</Text>
+            {([
+              { value: 'all',     emoji: '📅', label: 'All Dates' },
+              { value: 'overdue', emoji: '🔴', label: 'Overdue' },
+              { value: 'today',   emoji: '📌', label: 'Today' },
+              { value: 'week',    emoji: '📆', label: 'This Week' },
+              { value: 'none',    emoji: '⭕', label: 'No Date' },
+            ] as { value: string; emoji: string; label: string }[]).map((opt) => {
+              const selected = filterDate === opt.value
               return (
                 <TouchableOpacity
-                  key={member.id}
+                  key={opt.value}
                   style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
-                  onPress={() => { setFilterMemberId(member.id); setMemberPickerOpen(false) }}
+                  onPress={() => { setFilterDate(opt.value as DateFilter); setDatePickerOpen(false) }}
                   activeOpacity={0.65}
                 >
-                  <Text style={styles.pickerOptionEmoji}>{member.emoji}</Text>
+                  <Text style={styles.pickerOptionEmoji}>{opt.emoji}</Text>
                   <Text style={[styles.pickerOptionLabel, selected && styles.pickerOptionLabelSelected]}>
-                    {member.display_name}
+                    {opt.label}
                   </Text>
                   {selected && <Text style={styles.pickerCheck}>✓</Text>}
                 </TouchableOpacity>
@@ -726,6 +797,7 @@ const styles = StyleSheet.create({
   },
 
   // Picker modal
+  pickerScroll: { maxHeight: 320 },
   pickerBackdrop: { backgroundColor: 'rgba(0,0,0,0.4)' },
   pickerWrapper: {
     flex:              1,
