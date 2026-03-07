@@ -476,31 +476,31 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </ScrollView>
 
-            {/* Private toggle */}
-            <View style={styles.privacyRow}>
-              <Ionicons name="lock-closed-outline" size={18} color={isPrivate ? Colors.primary : Colors.textTertiary} />
-              <View style={styles.privacyText}>
-                <Text style={[styles.privacyLabel, isPrivate && styles.privacyLabelActive]}>Private task</Text>
-                <Text style={styles.privacySub}>Only visible to you</Text>
+              {/* Private toggle */}
+              <View style={styles.privacyRow}>
+                <Ionicons name="lock-closed-outline" size={18} color={isPrivate ? Colors.primary : Colors.textTertiary} />
+                <View style={styles.privacyText}>
+                  <Text style={[styles.privacyLabel, isPrivate && styles.privacyLabelActive]}>Private task</Text>
+                  <Text style={styles.privacySub}>Only visible to you</Text>
+                </View>
+                <Switch
+                  value={isPrivate}
+                  onValueChange={setIsPrivate}
+                  trackColor={{ false: Colors.borderSubtle, true: Colors.primaryLight }}
+                  thumbColor={isPrivate ? Colors.primary : Colors.textTertiary}
+                  ios_backgroundColor={Colors.borderSubtle}
+                />
               </View>
-              <Switch
-                value={isPrivate}
-                onValueChange={setIsPrivate}
-                trackColor={{ false: Colors.borderSubtle, true: Colors.primaryLight }}
-                thumbColor={isPrivate ? Colors.primary : Colors.textTertiary}
-                ios_backgroundColor={Colors.borderSubtle}
-              />
-            </View>
 
-            <Button
-              label="Save Changes"
-              onPress={handleSave}
-              loading={loading}
-              disabled={!title.trim() || loading}
-              style={styles.saveBtn}
-            />
+              <Button
+                label="Save Changes"
+                onPress={handleSave}
+                loading={loading}
+                disabled={!title.trim() || loading}
+                style={styles.saveBtn}
+              />
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </View>
