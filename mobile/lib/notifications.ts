@@ -10,6 +10,7 @@ import * as Notifications from 'expo-notifications'
 import * as SecureStore from 'expo-secure-store'
 import * as TaskManager from 'expo-task-manager'
 import { getStoredTokens, households as householdsApi } from '@/lib/api'
+import { getTimezone } from '@/lib/timezone'
 
 // ── Environment guard ─────────────────────────────────────────────────────────
 
@@ -113,12 +114,13 @@ if (!IS_EXPO_GO) {
       const householdId = claims?.hid
       if (!householdId) return BackgroundFetch.BackgroundFetchResult.NoData
 
-      const [{ tasks }, { completions }] = await Promise.all([
+      const [{ tasks }, { completions }, tz] = await Promise.all([
         householdsApi.tasks(householdId),
         householdsApi.completions(householdId),
+        getTimezone(),
       ])
 
-      const today    = new Date().toISOString().slice(0, 10)
+      const today    = new Date().toLocaleDateString('en-CA', { timeZone: tz })
       const dueCount = tasks.filter((t) => {
         if (!t.next_due || t.next_due > today) return false
         return !completions.some(
@@ -131,7 +133,7 @@ if (!IS_EXPO_GO) {
       }
 
       await Notifications.setBadgeCountAsync(dueCount)
-      console.log('[BG] Badge set to', dueCount)
+      if (__DEV__) console.log('[BG] Badge set to', dueCount)
       return BackgroundFetch.BackgroundFetchResult.NewData
     } catch (e) {
       console.warn('[BG] Background fetch failed:', e)

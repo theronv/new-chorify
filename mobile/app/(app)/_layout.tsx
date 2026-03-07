@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import * as Notifications from 'expo-notifications'
 import * as SecureStore from 'expo-secure-store'
-import { useAuthStore, useHouseholdStore, setStoreTimezone } from '@/lib/store'
+import { useAuthStore, useHouseholdStore, setStoreTimezone, selectTodaysTasks, selectIsCompletedToday } from '@/lib/store'
 import { members as membersApi } from '@/lib/api'
 import { getTimezone } from '@/lib/timezone'
 import {
+  IS_EXPO_GO,
   getNotifPref,
   registerForPushNotificationsAsync,
   registerBackgroundFetch,
@@ -34,6 +36,17 @@ export default function AppLayout() {
 
   // Load timezone preference once on mount
   useEffect(() => { getTimezone().then(setStoreTimezone) }, [])
+
+  // Keep the app badge in sync with due (uncompleted) task count
+  const tasks       = useHouseholdStore((s) => s.tasks)
+  const completions = useHouseholdStore((s) => s.completions)
+  useEffect(() => {
+    if (!IS_EXPO_GO) {
+      const dueTasks  = selectTodaysTasks(tasks)
+      const dueCount  = dueTasks.filter((t) => !selectIsCompletedToday(t.id, completions)).length
+      Notifications.setBadgeCountAsync(dueCount).catch(() => {})
+    }
+  }, [tasks, completions])
 
   // Load household data on mount
   useEffect(() => {

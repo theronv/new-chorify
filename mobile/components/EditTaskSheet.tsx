@@ -330,7 +330,16 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                 {RECURRENCES.map((r) => (
                   <TouchableOpacity
                     key={r.value}
-                    onPress={() => setRecurrence(r.value)}
+                    onPress={() => {
+                      setRecurrence(r.value)
+                      // When recurrence changes, reset next_due to today so the task
+                      // is immediately due under the new schedule (user can still override).
+                      if (r.value !== recurrence && r.value !== 'once') {
+                        setNextDue(new Date().toLocaleDateString('en-CA'))
+                      } else if (r.value === 'once') {
+                        setNextDue(nextDue) // keep current
+                      }
+                    }}
                     style={[styles.chip, recurrence === r.value && styles.chipSelected]}
                   >
                     <Text style={[styles.chipLabel, recurrence === r.value && styles.chipLabelSelected]}>
@@ -346,7 +355,11 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                       onPress={() => {
                         const n = active ? (parseCustomDays(recurrence) ?? customDays) : customDays
                         setCustomDays(n)
-                        setRecurrence(`every_${n}_days`)
+                        const newRec = `every_${n}_days`
+                        if (newRec !== recurrence) {
+                          setNextDue(new Date().toLocaleDateString('en-CA'))
+                        }
+                        setRecurrence(newRec)
                       }}
                       style={[styles.chip, active && styles.chipSelected]}
                     >
