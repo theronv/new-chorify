@@ -12,9 +12,12 @@ import {
   refreshTokenExpiry,
 } from '../auth'
 import { generateId } from '../utils'
-import { requireAuth } from '../middleware'
+import { requireAuth, rateLimit } from '../middleware'
 
 const auth = new Hono()
+
+// Rate limit: 10 attempts per 15-minute window per IP
+const authRateLimit = rateLimit(10, 15 * 60 * 1000)
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -35,7 +38,7 @@ const RefreshSchema = z.object({
 
 // ── POST /api/auth/signup ─────────────────────────────────────────────────────
 
-auth.post('/signup', zValidator('json', SignupSchema), async (c) => {
+auth.post('/signup', authRateLimit, zValidator('json', SignupSchema), async (c) => {
   const { email, password, displayName } = c.req.valid('json')
   const db = getDb()
 
@@ -77,7 +80,7 @@ auth.post('/signup', zValidator('json', SignupSchema), async (c) => {
 
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 
-auth.post('/login', zValidator('json', LoginSchema), async (c) => {
+auth.post('/login', authRateLimit, zValidator('json', LoginSchema), async (c) => {
   const { email, password } = c.req.valid('json')
   const db = getDb()
 

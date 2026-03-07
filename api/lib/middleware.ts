@@ -1,6 +1,62 @@
 // ─── Hono middleware ──────────────────────────────────────────────────────────
 import { createMiddleware } from 'hono/factory'
+import type { Context } from 'hono'
 import { verifyToken, type TokenPayload } from './auth'
+
+// ── Rate limiting (in-memory sliding window) ────────────────────────────────
+// Resets on cold start, but still prevents brute-force within a single instance.
+
+interface RateLimitEntry {
+  timestamps: number[]
+}
+
+const rateLimitStore = new Map<string, RateLimitEntry>()
+
+// Evict stale entries every 5 minutes to prevent unbounded memory growth
+const CLEANUP_INTERVAL = 5 * 60 * 1000
+let lastCleanup = Date.now()
+
+function cleanupStaleEntries(windowMs: number): void {
+  const now = Date.now()
+  if (now - lastCleanup < CLEANUP_INTERVAL) return
+  lastCleanup = now
+  const cutoff = now - windowMs
+  for (const [key, entry] of rateLimitStore) {
+    entry.timestamps = entry.timestamps.filter((t) => t > cutoff)
+    if (entry.timestamps.length === 0) rateLimitStore.delete(key)
+  }
+}
+
+/**
+ * Returns rate-limit middleware. Keys requests by IP + path.
+ * @param maxRequests  Max requests allowed in the window
+ * @param windowMs     Window size in milliseconds
+ */
+export function rateLimit(maxRequests: number, windowMs: number) {
+  return createMiddleware(async (c: Context, next) => {
+    const ip =
+      c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ??
+      c.req.header('x-real-ip') ??
+      'unknown'
+    const key = `${ip}:${c.req.path}`
+    const now = Date.now()
+
+    cleanupStaleEntries(windowMs)
+
+    const entry = rateLimitStore.get(key) ?? { timestamps: [] }
+    entry.timestamps = entry.timestamps.filter((t) => t > now - windowMs)
+
+    if (entry.timestamps.length >= maxRequests) {
+      const retryAfter = Math.ceil((entry.timestamps[0] + windowMs - now) / 1000)
+      c.header('Retry-After', String(retryAfter))
+      return c.json({ error: 'Too many requests. Please try again later.' }, 429)
+    }
+
+    entry.timestamps.push(now)
+    rateLimitStore.set(key, entry)
+    await next()
+  })
+}
 
 // Extend Hono's context type map so c.get('token') is typed everywhere.
 declare module 'hono' {

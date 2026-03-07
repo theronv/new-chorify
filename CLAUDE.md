@@ -38,7 +38,7 @@ api/      — Hono on Vercel Edge
 - Never call API directly from components — use typed wrappers in `lib/api.ts`
 - Never hardcode category strings — always read from `useHouseholdStore(s => s.categories)`
 - Use `expo-file-system/legacy` (not `expo-file-system`) for `writeAsStringAsync` / `EncodingType` in SDK 54
-- SecureStore keys `keptt.access_token` and `keptt.refresh_token` are legacy names — do not rename without a first-launch migration
+- SecureStore keys are `chorify.access_token` and `chorify.refresh_token` — migrated from legacy `keptt.*` keys via `migrateSecureStoreKeys()` in `hydrate()`
 
 ---
 
@@ -165,7 +165,4 @@ Key schema notes:
 
 ## Open Issues
 
-| ID | Issue |
-|----|-------|
-| BUG-7 | SecureStore keys use `keptt.*` prefix (legacy from prior app "Keppt") — rename requires first-launch migration |
-| — | No rate limiting on `POST /api/auth/login` or `POST /api/auth/signup` |
+*No outstanding bugs.*

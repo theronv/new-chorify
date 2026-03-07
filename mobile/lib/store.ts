@@ -12,7 +12,7 @@ import type {
   Room,
   Task,
 } from '@/types'
-import { auth as authApi, getStoredTokens, storeTokens, storeAccessToken, households as householdsApi, rooms as roomsApi } from '@/lib/api'
+import { auth as authApi, getStoredTokens, storeTokens, storeAccessToken, migrateSecureStoreKeys, households as householdsApi, rooms as roomsApi } from '@/lib/api'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -76,6 +76,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isHydrated:   false,
 
   hydrate: async () => {
+    await migrateSecureStoreKeys()
     const stored = await getStoredTokens()
     if (stored) {
       const claims = decodeJwt(stored.accessToken)

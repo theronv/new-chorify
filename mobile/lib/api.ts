@@ -46,8 +46,47 @@ const BASE_URL = (() => {
 if (__DEV__) console.log('[api] BASE_URL:', BASE_URL)
 
 // ── Secure storage keys ───────────────────────────────────────────────────────
-const ACCESS_KEY  = 'keptt.access_token'
-const REFRESH_KEY = 'keptt.refresh_token'
+const ACCESS_KEY  = 'chorify.access_token'
+const REFRESH_KEY = 'chorify.refresh_token'
+
+// Legacy keys (app was previously named "Keppt")
+const LEGACY_ACCESS_KEY  = 'keptt.access_token'
+const LEGACY_REFRESH_KEY = 'keptt.refresh_token'
+
+/**
+ * One-time migration: copy tokens from legacy `keptt.*` keys to `chorify.*`
+ * keys, then delete the old keys. Safe to call multiple times — no-ops if
+ * legacy keys are already gone.
+ */
+export async function migrateSecureStoreKeys(): Promise<void> {
+  const [legacyAccess, legacyRefresh] = await Promise.all([
+    SecureStore.getItemAsync(LEGACY_ACCESS_KEY),
+    SecureStore.getItemAsync(LEGACY_REFRESH_KEY),
+  ])
+  if (!legacyAccess && !legacyRefresh) return
+
+  // Copy to new keys (only if new key is empty — don't overwrite a newer value)
+  const [currentAccess, currentRefresh] = await Promise.all([
+    SecureStore.getItemAsync(ACCESS_KEY),
+    SecureStore.getItemAsync(REFRESH_KEY),
+  ])
+
+  const writes: Promise<void>[] = []
+  if (legacyAccess && !currentAccess) {
+    writes.push(SecureStore.setItemAsync(ACCESS_KEY, legacyAccess))
+  }
+  if (legacyRefresh && !currentRefresh) {
+    writes.push(SecureStore.setItemAsync(REFRESH_KEY, legacyRefresh))
+  }
+  await Promise.all(writes)
+
+  // Delete legacy keys
+  await Promise.all([
+    SecureStore.deleteItemAsync(LEGACY_ACCESS_KEY),
+    SecureStore.deleteItemAsync(LEGACY_REFRESH_KEY),
+  ])
+  if (__DEV__) console.log('[api] Migrated SecureStore keys from keptt.* to chorify.*')
+}
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 

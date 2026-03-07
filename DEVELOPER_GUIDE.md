@@ -280,8 +280,8 @@ if (res.status === 401 && retry) {
 ### SecureStore Keys
 | Key | Content |
 |-----|---------|
-| `keptt.access_token` | JWT access token *(legacy name from prior app "Keppt")* |
-| `keptt.refresh_token` | Refresh token *(same note)* |
+| `chorify.access_token` | JWT access token |
+| `chorify.refresh_token` | Refresh token |
 | `chorify.push_token` | Cached Expo push token (avoids unnecessary PATCH) |
 | `chorify.timezone` | User timezone preference string |
 | `chorify.notif_pref` | `'task' \| 'daily' \| 'none'` |
@@ -617,13 +617,9 @@ The Save button is disabled when `isChild` is `false`. This means adults cannot 
 
 ### 🟢 Low / Informational
 
-#### BUG-7: Legacy SecureStore key names
-**File:** `mobile/lib/api.ts:48–49`
-```typescript
-const ACCESS_KEY  = 'keptt.access_token'
-const REFRESH_KEY = 'keptt.refresh_token'
-```
-The app is named "Chorify" but these keys still use the old "Keppt" prefix. No functional impact, but confusing for new developers and visible in device keychain.
+#### BUG-7: Legacy SecureStore key names ✓ Fixed
+**File:** `mobile/lib/api.ts`
+Keys renamed from `keptt.*` to `chorify.*`. A one-time migration in `migrateSecureStoreKeys()` (called during `hydrate()`) copies tokens from old keys to new keys, then deletes the old keys. Safe to call multiple times.
 
 ---
 
@@ -674,7 +670,7 @@ If any of the parallel API calls in `load()` failed (except `categories` which h
 - **`updateCategory` uses type assertion** — `categories.tsx:81` casts `category.name` and `category.emoji` as strings. The response already has the correct types from the server; the casts are unnecessary.
 
 ### Security
-- **Rate limiting** — no rate limiting on the auth endpoints (`/api/auth/login`, `/api/auth/signup`). Add Vercel Edge rate limiting or use a middleware guard.
+- **Rate limiting** — in-memory sliding window rate limiter on `/api/auth/login` and `/api/auth/signup` (10 requests per 15-minute window per IP). Resets on cold start; sufficient for a household app.
 - **Avatar size** — base64 data URIs are stored directly in Turso. A 200×200 JPEG at 0.6 quality is typically 15–35KB. No server-side size validation exists. A malformed client could send a larger payload.
 - **Invite code entropy** — 6-character alphanumeric (36^6 ≈ 2.2 billion combinations) with 5 collision retries. Adequate for a household app with low volume, but brute-forcing the join endpoint is theoretically possible without rate limiting.
 
@@ -699,8 +695,8 @@ If any of the parallel API calls in `load()` failed (except `categories` which h
 - [x] Full backend smoke test passing (41/41 checks) — confirmed March 2026
 
 ### Remaining (future releases)
-- [ ] **BUG-7** — Rename legacy SecureStore keys from `keptt.*` to `chorify.*` (requires migration on first launch)
-- [ ] Rate limiting on `/api/auth/login` and `/api/auth/signup`
+- [x] **BUG-7** — Migrated SecureStore keys from `keptt.*` to `chorify.*` with automatic first-launch migration in `hydrate()`
+- [x] Rate limiting on `/api/auth/login` and `/api/auth/signup` — 10 requests per 15-minute window per IP (in-memory sliding window)
 
 ### QA Test Cases
 - [ ] Create account → create household → add tasks → complete tasks
