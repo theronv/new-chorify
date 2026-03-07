@@ -18,10 +18,12 @@ import { Input } from '@/components/Input'
 import { Toast } from '@/components/Toast'
 import { Colors, Radius, Shadows } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
+import { useLayout } from '@/constants/layout'
 
 export default function SignupScreen() {
   const router    = useRouter()
   const setTokens = useAuthStore((s) => s.setTokens)
+  const { isLandscape } = useLayout()
 
   const [name,     setName]     = useState('')
   const [email,    setEmail]    = useState('')
@@ -68,12 +70,12 @@ export default function SignupScreen() {
         style={styles.kav}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { maxWidth: 480, alignSelf: 'center', width: '100%' }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {/* Brand */}
-          <View style={styles.brand}>
+          <View style={[styles.brand, isLandscape && styles.brandLandscape]}>
             <View style={styles.logoBadge}>
               <Text style={styles.brandEmoji}>🏠</Text>
             </View>
@@ -246,5 +248,10 @@ const styles = StyleSheet.create({
     fontFamily: Font.semiBold,
     fontSize: FontSize.base,
     color: Colors.primary,
+  },
+
+  // Landscape
+  brandLandscape: {
+    marginBottom: 20,
   },
 })

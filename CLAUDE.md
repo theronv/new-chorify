@@ -165,4 +165,18 @@ Key schema notes:
 
 ## Open Issues
 
-*No outstanding bugs.*
+Full pre-launch checklist: `UAT_CHECKLIST.md`
+
+**Blockers (App Store will reject):**
+- No account deletion feature (Apple requirement 5.1.1v)
+- Branding inconsistency: app says "Chorify", docs say "Keptt" — pick one
+- Ungated `console.log` in production (leaks JWT tokens)
+- Rewards screen missing but referenced in App Store listing
+
+**High priority:**
+- Household store not cleared on logout (data privacy)
+- Auth store not updated during silent token refresh (state drift)
+- Optimistic updates lack rollback on API failure
+- `avatar_url` DB migration may not be applied in production
+- CORS allows all origins in production
+- Demo account needs seeding for App Review

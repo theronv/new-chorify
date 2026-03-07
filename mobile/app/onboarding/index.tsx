@@ -1,19 +1,25 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter, useLocalSearchParams } from 'expo-router'
 import { Colors } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
+import { useLayout } from '@/constants/layout'
 
 export default function OnboardingIndex() {
   const router = useRouter()
+  const { isLandscape } = useLayout()
   // displayName passed from signup, threaded into create/join screens
   const { n } = useLocalSearchParams<{ n?: string }>()
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, isLandscape && styles.headerLandscape]}>
           <Text style={styles.emoji}>🏡</Text>
           <Text style={styles.heading}>Set up your household</Text>
           <Text style={styles.sub}>
@@ -57,7 +63,7 @@ export default function OnboardingIndex() {
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   )
 }
@@ -68,9 +74,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
     justifyContent: 'center',
+    maxWidth: 480,
+    alignSelf: 'center',
+    width: '100%',
   },
 
   // Header
@@ -137,5 +146,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: Colors.textTertiary,
     marginLeft: 8,
+  },
+
+  // Landscape
+  headerLandscape: {
+    marginBottom: 24,
   },
 })

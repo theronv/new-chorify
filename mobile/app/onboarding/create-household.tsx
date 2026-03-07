@@ -19,6 +19,7 @@ import { Input } from '@/components/Input'
 import { Toast } from '@/components/Toast'
 import { Colors } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
+import { useLayout } from '@/constants/layout'
 
 const EMOJIS = ['😀','😎','🤗','😊','🙂','😄','🧑','👦','👧','👨','👩','🦸','🧙','⭐','🐶','🐱','🦊','🌟','🎮','🏆']
 
@@ -27,6 +28,7 @@ export default function CreateHouseholdScreen() {
   const updateAccessToken = useAuthStore((s) => s.updateAccessToken)
   const clearHousehold = useHouseholdStore((s) => s.clear)
 
+  const { isLandscape } = useLayout()
   const { n } = useLocalSearchParams<{ n?: string }>()
 
   const [householdName, setHouseholdName] = useState('')
@@ -75,7 +77,7 @@ export default function CreateHouseholdScreen() {
         style={styles.kav}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { maxWidth: 480, alignSelf: 'center' as const, width: '100%' as const }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -86,7 +88,7 @@ export default function CreateHouseholdScreen() {
 
           {/* Header */}
           <Text style={styles.heading}>Create your household</Text>
-          <Text style={styles.sub}>Give it a name and tell us who you are.</Text>
+          <Text style={[styles.sub, isLandscape && styles.subLandscape]}>Give it a name and tell us who you are.</Text>
 
           {/* Form */}
           <View style={styles.form}>
@@ -225,4 +227,9 @@ const styles = StyleSheet.create({
   },
 
   cta: {},
+
+  // Landscape
+  subLandscape: {
+    marginBottom: 16,
+  },
 })

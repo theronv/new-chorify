@@ -15,12 +15,14 @@ import { useAuthStore, useHouseholdStore } from '@/lib/store'
 import { Button } from '@/components/Button'
 import { Colors } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
+import { useLayout } from '@/constants/layout'
 import { PACKS } from '@/constants/packs'
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function PacksScreen() {
   const router      = useRouter()
+  const { isLandscape } = useLayout()
   const householdId = useAuthStore((s) => s.householdId)
   const load        = useHouseholdStore((s) => s.load)
 
@@ -77,11 +79,11 @@ export default function PacksScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { maxWidth: 480, alignSelf: 'center' as const, width: '100%' as const }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, isLandscape && styles.headerLandscape]}>
           <Text style={styles.heading}>Start with some tasks?</Text>
           <Text style={styles.sub}>
             Pick a starter pack and we'll add tasks to your household automatically.
@@ -128,7 +130,7 @@ export default function PacksScreen() {
       </ScrollView>
 
       {/* Sticky bottom CTA */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { maxWidth: 480, alignSelf: 'center' as const, width: '100%' as const }]}>
         {loading ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator color={Colors.primary} />
@@ -281,5 +283,10 @@ const styles = StyleSheet.create({
     fontFamily: Font.medium,
     fontSize: FontSize.base,
     color: Colors.textSecondary,
+  },
+
+  // Landscape
+  headerLandscape: {
+    marginBottom: 16,
   },
 })

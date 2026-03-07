@@ -19,6 +19,7 @@ import { Input } from '@/components/Input'
 import { Toast } from '@/components/Toast'
 import { Colors } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
+import { useLayout } from '@/constants/layout'
 
 const EMOJIS = ['😀','😎','🤗','😊','🙂','😄','🧑','👦','👧','👨','👩','🦸','🧙','⭐','🐶','🐱','🦊','🌟','🎮','🏆']
 
@@ -27,6 +28,7 @@ export default function JoinHouseholdScreen() {
   const updateAccessToken = useAuthStore((s) => s.updateAccessToken)
   const loadHousehold     = useHouseholdStore((s) => s.load)
 
+  const { isLandscape } = useLayout()
   const { n } = useLocalSearchParams<{ n?: string }>()
 
   const [inviteCode,   setInviteCode]   = useState('')
@@ -75,7 +77,7 @@ export default function JoinHouseholdScreen() {
         style={styles.kav}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { maxWidth: 480, alignSelf: 'center' as const, width: '100%' as const }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -86,7 +88,7 @@ export default function JoinHouseholdScreen() {
 
           {/* Header */}
           <Text style={styles.heading}>Join a household</Text>
-          <Text style={styles.sub}>
+          <Text style={[styles.sub, isLandscape && styles.subLandscape]}>
             Enter the 6-character invite code from your household admin.
           </Text>
 
@@ -232,4 +234,9 @@ const styles = StyleSheet.create({
   emojiChar: { fontSize: 24 },
 
   cta: {},
+
+  // Landscape
+  subLandscape: {
+    marginBottom: 16,
+  },
 })
