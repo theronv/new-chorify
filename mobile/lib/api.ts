@@ -226,6 +226,11 @@ export const auth = {
     }
     await clearTokens()
   },
+
+  async deleteMe(): Promise<void> {
+    await request('/api/auth/me', { method: 'DELETE' })
+    await clearTokens()
+  },
 }
 
 // ── Households ────────────────────────────────────────────────────────────────
@@ -277,6 +282,14 @@ export const households = {
 
   createCategory(id: string, body: CreateCategoryRequest): Promise<{ category: HouseholdCategory }> {
     return request(`/api/households/${id}/categories`, { method: 'POST', body: JSON.stringify(body) })
+  },
+
+  getRewards(id: string): Promise<{ rewards: any[] }> {
+    return request(`/api/households/${id}/rewards`)
+  },
+
+  createReward(id: string, body: { title: string; pointsRequired: number; emoji: string; assignedTo?: string }): Promise<{ reward: any }> {
+    return request(`/api/households/${id}/rewards`, { method: 'POST', body: JSON.stringify(body) })
   },
 }
 

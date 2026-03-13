@@ -49,7 +49,13 @@ export function rateLimit(maxRequests: number, windowMs: number) {
     if (entry.timestamps.length >= maxRequests) {
       const retryAfter = Math.ceil((entry.timestamps[0] + windowMs - now) / 1000)
       c.header('Retry-After', String(retryAfter))
-      return c.json({ error: 'Too many requests. Please try again later.' }, 429)
+      return c.json(
+        {
+          error: 'Too many attempts. Try again in 15 minutes.',
+          code: 'RATE_LIMITED',
+        },
+        429,
+      )
     }
 
     entry.timestamps.push(now)

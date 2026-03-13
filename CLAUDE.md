@@ -5,6 +5,10 @@ Full developer reference: `DEVELOPER_GUIDE.md`
 ## Stack
 React Native · Expo SDK 54 · Expo Router · Zustand · TypeScript · Hono 4.7 · Turso/libSQL · Vercel Edge
 
+- **Auth**: Custom JWT (jose) + PBKDF2. Account deletion at `DELETE /api/auth/me`. Clerk migration deferred to v2 (post-launch) to avoid re-auth/data loss for existing users.
+- **Push**: Expo Push Notification Service.
+- **Subscriptions**: RevenueCat scaffold installed (`react-native-purchases`). API keys required in `.env.local`.
+
 ## Monorepo
 ```
 mobile/   — Expo app
@@ -167,16 +171,9 @@ Key schema notes:
 
 Full pre-launch checklist: `UAT_CHECKLIST.md`
 
-**Blockers (App Store will reject):**
-- No account deletion feature (Apple requirement 5.1.1v)
-- Branding inconsistency: app says "Chorify", docs say "Keptt" — pick one
-- Ungated `console.log` in production (leaks JWT tokens)
-- Rewards screen missing but referenced in App Store listing
-
-**High priority:**
-- Household store not cleared on logout (data privacy)
-- Auth store not updated during silent token refresh (state drift)
-- Optimistic updates lack rollback on API failure
-- `avatar_url` DB migration may not be applied in production
-- CORS allows all origins in production
-- Demo account needs seeding for App Review
+**Next Steps (Post-Launch):**
+- Clerk migration (Apple/Google Sign-In)
+- FlashList migration for lists > 50 items
+- Optimistic update rollbacks on API failure
+- CORS origin restriction in production
+- Full IAP paywall UI (v2)

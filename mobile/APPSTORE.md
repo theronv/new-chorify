@@ -1,4 +1,4 @@
-# Keptt — App Store Metadata
+# Chorify — App Store Metadata
 
 ## App Name
 Chorify
@@ -47,7 +47,7 @@ Create tasks, assign them to family members, earn points for every completion, a
 • Badge count on the app icon shows overdue tasks at a glance
 • Tap the notification to go directly to today's task list
 
-Keptt is free to download and use. Your household data is stored securely and is never sold or shared.
+Chorify is free to download and use. Your household data is stored securely and is never sold or shared.
 
 ---
 
@@ -67,15 +67,15 @@ https://api-eight-pi-38.vercel.app/privacy-policy
 
 ## Version Release Notes (1.0)
 
-First release of Keptt — create chores, earn points, and redeem rewards as a family.
+First release of Chorify — create chores, earn points, and redeem rewards as a family.
 
 ---
 
 ## App Review Information
 
 ### Demo Account
-- **Email:** demo@keptt.app
-- **Password:** KepttDemo2024
+- **Email:** demo@chorify.app
+- **Password:** ChorifyDemo2024
 - **Notes:** A pre-seeded household ("The Demo Family") with 8 sample tasks is ready to explore. Log in with these credentials to see the full app experience including task completion, leaderboard, and rewards.
 
 ### Review Notes
@@ -100,4 +100,4 @@ First release of Keptt — create chores, earn points, and redeem rewards as a f
 No third-party content.
 
 ## Advertising Identifier (IDFA)
-No — Keptt does not use the advertising identifier.
+No — Chorify does not use the advertising identifier.

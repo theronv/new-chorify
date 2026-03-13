@@ -13,7 +13,8 @@ import {
 } from 'react-native'
 import ConfettiCannon from 'react-native-confetti-cannon'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { tasks as tasksApi } from '@/lib/api'
+import { Ionicons } from '@expo/vector-icons'
+import { useTaskActions } from '@/lib/hooks'
 import {
   selectIsCompletedToday,
   getTodayString,
@@ -33,33 +34,28 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets()
   const { isTablet, contentPadding, headerPadding, contentMaxWidth } = useLayout()
 
-  const memberId    = useAuthStore((s) => s.memberId)
-  const householdId = useAuthStore((s) => s.householdId)
-
-  const tasks         = useHouseholdStore((s) => s.tasks)
-  const completions   = useHouseholdStore((s) => s.completions)
-  const members       = useHouseholdStore((s) => s.members)
-  const rooms         = useHouseholdStore((s) => s.rooms)
-  const categories    = useHouseholdStore((s) => s.categories)
-  const isLoading     = useHouseholdStore((s) => s.isLoading)
-  const loadError     = useHouseholdStore((s) => s.loadError)
-  const load          = useHouseholdStore((s) => s.load)
-  const addCompletion = useHouseholdStore((s) => s.addCompletion)
-  const updateTask    = useHouseholdStore((s) => s.updateTask)
-  const removeTask    = useHouseholdStore((s) => s.removeTask)
+  const householdId = useHouseholdStore((s) => s.householdId)
+  const tasks       = useHouseholdStore((s) => s.tasks)
+  const completions = useHouseholdStore((s) => s.completions)
+  const members     = useHouseholdStore((s) => s.members)
+  const rooms       = useHouseholdStore((s) => s.rooms)
+  const categories  = useHouseholdStore((s) => s.categories)
+  const isLoading   = useHouseholdStore((s) => s.isLoading)
+  const loadError   = useHouseholdStore((s) => s.loadError)
+  const load        = useHouseholdStore((s) => s.load)
 
   const [sheetVisible,       setSheetVisible]       = useState(false)
   const [editingTask,        setEditingTask]        = useState<Task | null>(null)
-  const [completing,         setCompleting]         = useState<Record<string, boolean>>({})
   const [filterRoomId,       setFilterRoomId]       = useState<string | null>(null)
   const [roomPickerOpen,     setRoomPickerOpen]     = useState(false)
   const [filterCategory,     setFilterCategory]     = useState<string | null>(null)
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
   const [filterAssignedTo,   setFilterAssignedTo]   = useState<string | null>(null)
   const [memberPickerOpen,   setMemberPickerOpen]   = useState(false)
-  const [deleteError,        setDeleteError]        = useState<string | null>(null)
 
   const confettiRef = useRef<any>(null)
+  const { handleComplete, handleDelete, completing, deleteError, setDeleteError } = useTaskActions(confettiRef)
+
   const today       = getTodayString()
 
   // ── Filter + partition tasks into three sections ──────────────────────────
@@ -93,54 +89,6 @@ export default function HomeScreen() {
   }
 
   const hasPending = overdue.length + dueToday.length > 0
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-
-  function handleComplete(task: Task) {
-    if (!memberId || completing[task.id]) return
-    Alert.alert(
-      'Mark as done?',
-      task.title,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Complete ✓',
-          onPress: async () => {
-            setCompleting((prev) => ({ ...prev, [task.id]: true }))
-            try {
-              const res = await tasksApi.complete(task.id, memberId)
-              addCompletion({
-                id:             res.completion.id,
-                task_id:        res.completion.task_id,
-                member_id:      res.completion.member_id,
-                household_id:   task.household_id,
-                completed_date: res.completion.completed_date,
-                completed_at:   new Date().toISOString(),
-              })
-              updateTask(task.id, {
-                next_due:       res.nextDue,
-                last_completed: res.completion.completed_date,
-              })
-              confettiRef.current?.start()
-            } catch {
-              // Checkbox returns to tappable state via finally
-            } finally {
-              setCompleting((prev) => ({ ...prev, [task.id]: false }))
-            }
-          },
-        },
-      ],
-    )
-  }
-
-  async function handleDelete(task: Task) {
-    try {
-      await tasksApi.delete(task.id)
-      removeTask(task.id)
-    } catch {
-      setDeleteError('Could not delete task. Pull down to refresh.')
-    }
-  }
 
   const handleRefresh = useCallback(async () => {
     if (householdId) await load(householdId)
@@ -456,17 +404,29 @@ export default function HomeScreen() {
         {/* Empty states */}
         {!hasPending && completed.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>
-              {filterRoomId || filterCategory || filterAssignedTo ? '🔍' : '📋'}
-            </Text>
+            <Ionicons
+              name={filterRoomId || filterCategory || filterAssignedTo ? 'search-outline' : 'list-outline'}
+              size={64}
+              color={Colors.textTertiary}
+              style={{ marginBottom: 12 }}
+            />
             <Text style={styles.emptyTitle}>
               {filterRoomId || filterCategory || filterAssignedTo ? 'No matching tasks' : 'No tasks yet'}
             </Text>
             <Text style={styles.emptyBody}>
               {filterRoomId || filterCategory || filterAssignedTo
                 ? 'Nothing due today matches this filter.'
-                : 'Tap the + button to add your first task.'}
+                : 'Your household is all set up! Start adding chores to your list.'}
             </Text>
+            {!filterRoomId && !filterCategory && !filterAssignedTo && (
+              <TouchableOpacity
+                style={styles.ctaBtn}
+                onPress={() => setSheetVisible(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.ctaBtnText}>Create first task</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -713,6 +673,18 @@ const styles = StyleSheet.create({
     color:      Colors.textSecondary,
     textAlign:  'center',
     maxWidth:   240,
+  },
+  ctaBtn: {
+    marginTop:         16,
+    paddingHorizontal: 28,
+    paddingVertical:   12,
+    borderRadius:      Radius.full,
+    backgroundColor:   Colors.primary,
+  },
+  ctaBtnText: {
+    fontFamily: Font.semiBold,
+    fontSize:   FontSize.base,
+    color:      Colors.textOnPrimary,
   },
 
   // Load error

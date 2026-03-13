@@ -16,8 +16,8 @@ import { requireAuth, rateLimit } from '../middleware'
 
 const auth = new Hono()
 
-// Rate limit: 10 attempts per 15-minute window per IP
-const authRateLimit = rateLimit(10, 15 * 60 * 1000)
+// Rate limit: 5 attempts per IP per 15-minute window
+const authRateLimit = rateLimit(5, 15 * 60 * 1000)
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -218,6 +218,32 @@ auth.post('/logout', requireAuth, async (c) => {
       args: [await hashToken(body.refreshToken)],
     })
   }
+  return c.json({ ok: true })
+})
+
+// ── DELETE /api/auth/me ───────────────────────────────────────────────────────
+// Deletes the authenticated user's account and all associated data.
+// Cascaded via DB foreign keys (profiles, refresh_tokens).
+// NOTE: Household membership is removed, but households themselves are NOT deleted.
+
+auth.delete('/me', requireAuth, authRateLimit, async (c) => {
+  const { sub: userId } = c.get('token')
+  const db = getDb()
+
+  await db.execute({
+    sql: 'DELETE FROM users WHERE id = ?',
+    args: [userId],
+  })
+
+  // Note: profiles and refresh_tokens cascade.
+  // members.user_id does NOT cascade in schema, so we should null it or delete it.
+  // Actually, for an adult member, deleting the member record is better for privacy.
+  // If the member is deleted, their completions also cascade.
+  await db.execute({
+    sql: 'DELETE FROM members WHERE user_id = ?',
+    args: [userId],
+  })
+
   return c.json({ ok: true })
 })
 

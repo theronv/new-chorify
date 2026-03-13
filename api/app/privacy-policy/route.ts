@@ -1,4 +1,4 @@
-// Privacy Policy page for Keptt — served at /privacy-policy
+// Privacy Policy page for Chorify — served at /privacy-policy
 // Returns static HTML (no database access required)
 
 export const runtime = 'edge'
@@ -8,7 +8,7 @@ const HTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Privacy Policy — Keptt</title>
+  <title>Privacy Policy — Chorify</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -41,14 +41,14 @@ const HTML = `<!DOCTYPE html>
 <body>
   <div class="container">
     <header>
-      <div class="logo">Keptt</div>
+      <div class="logo">Chorify</div>
       <h1>Privacy Policy</h1>
       <p class="updated">Effective date: March 1, 2026</p>
     </header>
 
     <div class="card">
       <p>
-        Keptt (&ldquo;we,&rdquo; &ldquo;our,&rdquo; or &ldquo;us&rdquo;) is a household
+        Chorify (&ldquo;we,&rdquo; &ldquo;our,&rdquo; or &ldquo;us&rdquo;) is a household
         chore-tracking app for families. This Privacy Policy describes what information we
         collect, how we use it, and your rights regarding that information.
       </p>
@@ -86,7 +86,7 @@ const HTML = `<!DOCTYPE html>
 
       <h2>5. Children&rsquo;s Privacy</h2>
       <p>
-        Keptt allows household admins to create child accounts (no email required) for family
+        Chorify allows household admins to create child accounts (no email required) for family
         members under 13. Child accounts contain only a display name and emoji — no email or
         password is stored. Parents or guardians are responsible for managing child account data.
       </p>
@@ -101,7 +101,7 @@ const HTML = `<!DOCTYPE html>
 
       <h2>7. Third-Party Services</h2>
       <p>
-        Keptt uses <a href="https://expo.dev/privacy" target="_blank">Expo</a> to deliver
+        Chorify uses <a href="https://expo.dev/privacy" target="_blank">Expo</a> to deliver
         push notifications via Apple Push Notification service (APNs). Your push token is
         transmitted to Expo&rsquo;s servers solely to route notifications to your device.
         No other personal data is shared with Expo.
@@ -116,7 +116,7 @@ const HTML = `<!DOCTYPE html>
 
       <h2>9. Contact</h2>
       <p>
-        Questions or deletion requests: <a href="mailto:support@keptt.app">support@keptt.app</a>
+        Questions or deletion requests: <a href="mailto:support@chorify.app">support@chorify.app</a>
       </p>
     </div>
   </div>

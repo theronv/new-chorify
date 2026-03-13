@@ -29,6 +29,13 @@ members.patch('/:id', requireAuth, zValidator('json', UpdateSchema), async (c) =
   const updates = c.req.valid('json')
   const db = getDb()
 
+  if (updates.avatarUrl && updates.avatarUrl.length > 100_000) {
+    return c.json(
+      { error: 'Avatar too large. Max 75KB.', code: 'AVATAR_TOO_LARGE' },
+      400,
+    )
+  }
+
   const memberResult = await db.execute({
     sql: 'SELECT id, household_id, user_id FROM members WHERE id = ?',
     args: [memberId],
