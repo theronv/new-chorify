@@ -742,7 +742,7 @@ const styles = StyleSheet.create({
     position:        'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     borderRadius:    26,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: Colors.overlayHeavy,
     alignItems:      'center',
     justifyContent:  'center',
   },
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
   },
 
   // Timezone picker modal
-  pickerBackdrop: { backgroundColor: 'rgba(0,0,0,0.4)' },
+  pickerBackdrop: { backgroundColor: Colors.overlayMedium },
   pickerWrapper: {
     flex:              1,
     alignItems:        'center',
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
   },
 
   // Add Member sheet
-  overlay:       { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  overlay:       { flex: 1, justifyContent: 'flex-end', backgroundColor: Colors.overlayHeavy },
   overlayTablet: { alignItems: 'center' },
   kavContainer:  { width: '100%' },
   sheet: {

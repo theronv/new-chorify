@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { ArrowLeft } from 'lucide-react-native'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { households as householdsApi, categoriesApi } from '@/lib/api'
@@ -138,7 +138,7 @@ export default function CategoriesScreen() {
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Ionicons name="chevron-back" size={24} color={Colors.primary} />
+          <ArrowLeft size={24} color={Colors.primary} />
         </TouchableOpacity>
         <Text style={styles.screenTitle}>Categories</Text>
       </View>
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
 
   // Modal
   backdrop: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: Colors.overlayMedium,
   },
   modalWrapper: {
     flex:              1,

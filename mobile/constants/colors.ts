@@ -1,53 +1,59 @@
-// ── Chorify design system colors ──────────────────────────────────────────────
+// ── Chorify design system colors (HSL) ───────────────────────────────────────
+// All colors defined as HSL strings for theming compatibility.
 
 export const Colors = {
-  // Brand — deep teal
-  primary:        '#486966',
-  primaryLight:   '#EAF0EF', // tinted teal background for selected states
-  primaryDark:    '#2E4542',
+  // Brand — vibrant blue
+  primary:        'hsl(217, 91%, 60%)',
+  primaryLight:   'hsl(217, 91%, 96%)',
+  primaryDark:    'hsl(217, 91%, 45%)',
 
-  // Accent — red
-  accent:         '#BD2A2E',
+  // Accent — energetic coral-orange
+  accent:         'hsl(14, 100%, 64%)',
 
   // Points / gamification
-  gold:           '#C8902A',
-  goldLight:      '#F5EDD8',
+  gold:           'hsl(38, 92%, 55%)',
+  goldLight:      'hsl(38, 92%, 93%)',
 
   // Semantic
-  success:        '#3D8B6C', // muted forest green — completed
-  successLight:   '#E4F0EB',
-  warning:        '#C87D2A', // warm amber — due soon
-  warningLight:   '#F5ECD6',
-  danger:         '#BD2A2E', // red — overdue
-  dangerLight:    '#F5E6E6',
+  success:        'hsl(145, 70%, 45%)',
+  successLight:   'hsl(145, 70%, 93%)',
+  warning:        'hsl(38, 92%, 55%)',
+  warningLight:   'hsl(38, 92%, 93%)',
+  danger:         'hsl(0, 90%, 60%)',
+  dangerLight:    'hsl(0, 90%, 95%)',
 
   // Neutrals
-  background:     '#F4F2F0', // warm off-white
-  surface:        '#FFFFFF',
-  surfaceRaised:  '#FFFFFF',
-  border:         '#C8D4D4', // muted teal-gray
-  borderSubtle:   '#E2EEEE', // very light teal
+  background:     'hsl(220, 20%, 98%)',
+  surface:        'hsl(0, 0%, 100%)',
+  surfaceRaised:  'hsl(0, 0%, 100%)',
+  border:         'hsl(220, 15%, 85%)',
+  borderSubtle:   'hsl(220, 15%, 93%)',
 
   // Text
-  textPrimary:    '#3B3936', // dark charcoal
-  textSecondary:  '#889C9B', // muted sage
-  textTertiary:   '#B2BEBF', // light gray-blue
-  textOnPrimary:  '#FFFFFF',
-  textOnGold:     '#5C3800',
+  textPrimary:    'hsl(222, 28%, 18%)',
+  textSecondary:  'hsl(220, 10%, 50%)',
+  textTertiary:   'hsl(220, 10%, 70%)',
+  textOnPrimary:  'hsl(0, 0%, 100%)',
+  textOnGold:     'hsl(30, 60%, 20%)',
 
   // Tab bar
-  tabActive:      '#486966',
-  tabInactive:    '#889C9B',
-  tabBackground:  '#FFFFFF',
+  tabActive:      'hsl(217, 91%, 60%)',
+  tabInactive:    'hsl(220, 10%, 50%)',
+  tabBackground:  'hsl(0, 0%, 100%)',
+
+  // Overlays (standardised backdrop tokens)
+  overlayHeavy:   'rgba(0,0,0,0.45)',
+  overlayMedium:  'rgba(0,0,0,0.4)',
+  overlayLight:   'rgba(0,0,0,0.35)',
 
   // Category badge colors (legacy static map — kept for reference)
   category: {
-    home:    { bg: '#E4EEEE', text: '#486966' },
-    pet:     { bg: '#F5EEEA', text: '#8B4513' },
-    outdoor: { bg: '#E6EFEA', text: '#2D6A4F' },
-    health:  { bg: '#F2E8EC', text: '#823050' },
-    family:  { bg: '#F0EAE0', text: '#7A5C1A' },
-    vehicle: { bg: '#E4EEF2', text: '#1E6080' },
+    home:    { bg: 'hsl(217, 91%, 96%)', text: 'hsl(217, 91%, 45%)' },
+    pet:     { bg: 'hsl(25, 70%, 94%)',  text: 'hsl(25, 60%, 35%)' },
+    outdoor: { bg: 'hsl(145, 50%, 94%)', text: 'hsl(145, 50%, 30%)' },
+    health:  { bg: 'hsl(340, 50%, 94%)', text: 'hsl(340, 50%, 35%)' },
+    family:  { bg: 'hsl(38, 70%, 94%)',  text: 'hsl(38, 60%, 30%)' },
+    vehicle: { bg: 'hsl(200, 60%, 94%)', text: 'hsl(200, 60%, 30%)' },
   },
 } as const
 
@@ -55,16 +61,16 @@ export type ColorKey = keyof typeof Colors
 
 // ── Dynamic category color palette ────────────────────────────────────────────
 // Assign colors by sort_order % palette length.
-// Indices 0–5 intentionally match the legacy Colors.category entries above.
+// Vibrant, modern palette that complements the new blue primary.
 export const CATEGORY_COLORS: { bg: string; text: string }[] = [
-  { bg: '#E4EEEE', text: '#486966' }, // 0: teal    (home)
-  { bg: '#F5EEEA', text: '#8B4513' }, // 1: brown   (pet)
-  { bg: '#E6EFEA', text: '#2D6A4F' }, // 2: forest  (outdoor)
-  { bg: '#F2E8EC', text: '#823050' }, // 3: rose    (health)
-  { bg: '#F0EAE0', text: '#7A5C1A' }, // 4: amber   (family)
-  { bg: '#E4EEF2', text: '#1E6080' }, // 5: steel   (vehicle)
-  { bg: '#ECE8F2', text: '#5E408A' }, // 6: muted purple
-  { bg: '#F2E8E8', text: '#BD2A2E' }, // 7: red accent
+  { bg: 'hsl(217, 91%, 96%)', text: 'hsl(217, 91%, 45%)' }, // 0: blue     (home)
+  { bg: 'hsl(25, 70%, 94%)',  text: 'hsl(25, 60%, 35%)' },  // 1: brown    (pet)
+  { bg: 'hsl(145, 50%, 94%)', text: 'hsl(145, 50%, 30%)' },  // 2: green    (outdoor)
+  { bg: 'hsl(340, 50%, 94%)', text: 'hsl(340, 50%, 35%)' },  // 3: rose     (health)
+  { bg: 'hsl(38, 70%, 94%)',  text: 'hsl(38, 60%, 30%)' },   // 4: amber    (family)
+  { bg: 'hsl(200, 60%, 94%)', text: 'hsl(200, 60%, 30%)' },  // 5: cyan     (vehicle)
+  { bg: 'hsl(270, 50%, 94%)', text: 'hsl(270, 50%, 35%)' },  // 6: purple
+  { bg: 'hsl(0, 70%, 95%)',   text: 'hsl(0, 70%, 40%)' },    // 7: red
 ]
 
 /**
@@ -76,57 +82,59 @@ export function getCategoryColor(sortOrder: number): { bg: string; text: string 
 }
 
 // ── Shadow presets ────────────────────────────────────────────────────────────
-// Uses the dark charcoal as shadow base (warm-tinted, softer than pure #000)
+// Softer shadows using the new textPrimary as base color.
+// Opacity reduced 50% and radius increased 25% from the previous system.
 export const Shadows = {
   /** Subtle lift — task cards, list items */
   sm: {
-    shadowColor:   '#3B3936',
+    shadowColor:   'hsl(222, 28%, 18%)',
     shadowOffset:  { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius:  6,
+    shadowOpacity: 0.03,
+    shadowRadius:  7.5,
     elevation:     2,
   },
   /** Standard card depth */
   card: {
-    shadowColor:   '#3B3936',
+    shadowColor:   'hsl(222, 28%, 18%)',
     shadowOffset:  { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius:  14,
+    shadowOpacity: 0.04,
+    shadowRadius:  17.5,
     elevation:     4,
   },
   /** Modals, sheets, overlaid UI */
   md: {
-    shadowColor:   '#3B3936',
+    shadowColor:   'hsl(222, 28%, 18%)',
     shadowOffset:  { width: 0, height: 6 },
-    shadowOpacity: 0.11,
-    shadowRadius:  20,
+    shadowOpacity: 0.055,
+    shadowRadius:  25,
     elevation:     8,
   },
   /** Deep popups, pickers */
   lg: {
-    shadowColor:   '#3B3936',
+    shadowColor:   'hsl(222, 28%, 18%)',
     shadowOffset:  { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius:  30,
+    shadowOpacity: 0.075,
+    shadowRadius:  37.5,
     elevation:     14,
   },
   /** Coloured glow for primary action buttons */
   button: {
-    shadowColor:   '#486966',
+    shadowColor:   'hsl(217, 91%, 60%)',
     shadowOffset:  { width: 0, height: 4 },
-    shadowOpacity: 0.30,
-    shadowRadius:  12,
+    shadowOpacity: 0.15,
+    shadowRadius:  15,
     elevation:     5,
   },
 } as const
 
 // ── Border radius scale ───────────────────────────────────────────────────────
+// Softer, more modern radii.
 export const Radius = {
   xs:   6,
-  sm:   8,
-  md:   12,
-  lg:   16,
-  xl:   20,
-  '2xl': 28,
+  sm:   10,
+  md:   16,
+  lg:   24,
+  xl:   32,
+  '2xl': 32, // kept as alias for backward compat; same as xl in new system
   full: 9999,
 } as const
