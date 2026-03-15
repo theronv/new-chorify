@@ -157,16 +157,14 @@ export function AddTaskSheet({ visible, onClose }: AddTaskSheetProps) {
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={handleClose}
+      onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={[styles.overlay, sheetMaxWidth && styles.overlayTablet]}>
-        {/* Tap backdrop to dismiss */}
-        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
-
+      <View style={[styles.overlay, sheetMaxWidth ? styles.overlayTablet : {}]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={[styles.kavContainer, sheetMaxWidth && { maxWidth: sheetMaxWidth }]}
+          style={[styles.kavContainer, sheetMaxWidth ? { maxWidth: sheetMaxWidth } : {}]}
         >
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 16, ...(isLandscape ? { maxHeight: '95%' } : {}) }]}>
             {/* Handle */}

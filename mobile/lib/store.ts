@@ -125,7 +125,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }),
 
   logout: async () => {
-    await authApi.logout()
+    try {
+      await authApi.logout()
+    } catch {}
+    useHouseholdStore.getState().clear()
     set({
       accessToken:  null,
       refreshToken: null,
@@ -140,6 +143,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
 interface HouseholdState {
   household:   Household | null
+  householdId: string | null
   members:     Member[]
   tasks:       Task[]
   completions: Completion[]
@@ -168,6 +172,7 @@ interface HouseholdState {
 
 export const useHouseholdStore = create<HouseholdState>((set) => ({
   household:   null,
+  householdId: null,
   members:     [],
   tasks:       [],
   completions: [],
@@ -177,7 +182,7 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
   loadError:   null,
 
   load: async (householdId, silent = false) => {
-    set({ isLoading: !silent, loadError: null })
+    set({ isLoading: !silent, loadError: null, householdId })
     try {
       const [
         { household }, { members }, { tasks }, { completions }, { rooms },
@@ -250,7 +255,7 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
     })),
 
   clear: () =>
-    set({ household: null, members: [], tasks: [], completions: [], rooms: [], categories: [], loadError: null }),
+    set({ household: null, householdId: null, members: [], tasks: [], completions: [], rooms: [], categories: [], loadError: null }),
 }))
 
 // ── Computed selectors ────────────────────────────────────────────────────────

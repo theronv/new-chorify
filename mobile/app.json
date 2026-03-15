@@ -18,7 +18,9 @@
       "buildNumber": "6",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSUserNotificationUsageDescription": "Chorify sends reminders when household tasks are due."
+        "NSPhotoLibraryUsageDescription": "Chorify needs access to your photos to set profile avatars.",
+        "NSCameraUsageDescription": "Chorify needs access to your camera to take profile photos.",
+        "NSUserNotificationsUsageDescription": "Chorify sends reminders when household tasks are due."
       }
     },
     "web": {
@@ -37,7 +39,13 @@
         }
       ],
       "expo-background-fetch",
-      "expo-image-picker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Chorify needs access to your photos to set profile avatars.",
+          "cameraPermission": "Chorify needs access to your camera to take profile photos."
+        }
+      ],
       "@react-native-community/datetimepicker"
     ],
     "experiments": {

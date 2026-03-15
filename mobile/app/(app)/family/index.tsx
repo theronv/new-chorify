@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Image,
@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import ConfettiCannon from 'react-native-confetti-cannon'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { tasks as tasksApi } from '@/lib/api'
+import { useTaskActions } from '@/lib/hooks'
 import {
   selectIsCompletedToday,
   getTodayString,
@@ -33,12 +33,9 @@ import type { Task, Completion } from '@/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function weeklyCompletions(memberId: string, completions: Completion[]): number {
-  const today = getTodayString()
-  const [y, m, d] = today.split('-').map(Number)
-  const cutoffStr = new Date(Date.UTC(y, m - 1, d - 7)).toISOString().slice(0, 10)
+function getWeeklyCount(memberId: string, completions: Completion[], cutoff: string): number {
   return completions.filter(
-    (c) => c.member_id === memberId && c.completed_date >= cutoffStr,
+    (c) => c.member_id === memberId && c.completed_date >= cutoff,
   ).length
 }
 
@@ -48,26 +45,21 @@ export default function TasksScreen() {
   const insets = useSafeAreaInsets()
   const { isTablet, contentPadding, headerPadding, contentMaxWidth } = useLayout()
 
-  const memberId    = useAuthStore((s) => s.memberId)
-  const householdId = useAuthStore((s) => s.householdId)
+  const householdId = useHouseholdStore((s) => s.householdId)
+  const tasks       = useHouseholdStore((s) => s.tasks)
+  const completions = useHouseholdStore((s) => s.completions)
+  const members     = useHouseholdStore((s) => s.members)
+  const rooms       = useHouseholdStore((s) => s.rooms)
+  const isLoading   = useHouseholdStore((s) => s.isLoading)
+  const load        = useHouseholdStore((s) => s.load)
 
-  const tasks         = useHouseholdStore((s) => s.tasks)
-  const completions   = useHouseholdStore((s) => s.completions)
-  const members       = useHouseholdStore((s) => s.members)
-  const rooms         = useHouseholdStore((s) => s.rooms)
-  const isLoading     = useHouseholdStore((s) => s.isLoading)
-  const load          = useHouseholdStore((s) => s.load)
-  const addCompletion = useHouseholdStore((s) => s.addCompletion)
-  const updateTask    = useHouseholdStore((s) => s.updateTask)
-  const removeTask    = useHouseholdStore((s) => s.removeTask)
+  const [sheetVisible, setSheetVisible] = useState(false)
+  const [editingTask, setEditingTask]   = useState<Task | null>(null)
+
+  const confettiRef = useRef<any>(null)
+  const { handleComplete, handleDelete, completing, deleteError, setDeleteError } = useTaskActions(confettiRef)
 
   type DateFilter = 'all' | 'overdue' | 'today' | 'week' | 'none'
-
-  // Task sheet state
-  const [sheetVisible, setSheetVisible]   = useState(false)
-  const [editingTask, setEditingTask]     = useState<Task | null>(null)
-  const [completing, setCompleting]       = useState<Record<string, boolean>>({})
-  const [deleteError, setDeleteError]     = useState<string | null>(null)
 
   // Filter state
   const [filterRoomId,    setFilterRoomId]    = useState<string | null>(null)
@@ -77,16 +69,25 @@ export default function TasksScreen() {
   const [memberPickerOpen, setMemberPickerOpen] = useState(false)
   const [datePickerOpen,  setDatePickerOpen]  = useState(false)
 
-  const confettiRef = useRef<any>(null)
-
   const today   = getTodayString()
   const weekStr = getWeekFromNowString()
 
-  // ── Leaderboard ─────────────────────────────────────────────────────────────
+  // ── Leaderboard (Memoized) ──────────────────────────────────────────────────
 
-  const sorted = [...members].sort(
-    (a, b) => weeklyCompletions(b.id, completions) - weeklyCompletions(a.id, completions),
-  )
+  const { sortedMembers, memberPoints } = useMemo(() => {
+    const [y, m, d] = today.split('-').map(Number)
+    const cutoff = new Date(Date.UTC(y, m - 1, d - 7)).toISOString().slice(0, 10)
+
+    const points = new Map<string, number>()
+    members.forEach((m) => {
+      points.set(m.id, getWeeklyCount(m.id, completions, cutoff))
+    })
+
+    const sorted = [...members].sort(
+      (a, b) => (points.get(b.id) ?? 0) - (points.get(a.id) ?? 0),
+    )
+    return { sortedMembers: sorted, memberPoints: points }
+  }, [members, completions, today])
 
   // ── Filter + partition tasks ─────────────────────────────────────────────────
 
@@ -136,54 +137,6 @@ export default function TasksScreen() {
 
   const hasAnySection =
     overdue.length + dueToday.length + upcoming.length + later.length + anytime.length + completed.length > 0
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
-
-  function handleComplete(task: Task) {
-    if (!memberId || completing[task.id]) return
-    Alert.alert(
-      'Mark as done?',
-      task.title,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Complete ✓',
-          onPress: async () => {
-            setCompleting((prev) => ({ ...prev, [task.id]: true }))
-            try {
-              const res = await tasksApi.complete(task.id, memberId)
-              addCompletion({
-                id:             res.completion.id,
-                task_id:        res.completion.task_id,
-                member_id:      res.completion.member_id,
-                household_id:   task.household_id,
-                completed_date: res.completion.completed_date,
-                completed_at:   new Date().toISOString(),
-              })
-              updateTask(task.id, {
-                next_due:       res.nextDue,
-                last_completed: res.completion.completed_date,
-              })
-              confettiRef.current?.start()
-            } catch {
-              // Checkbox returns to tappable state via finally
-            } finally {
-              setCompleting((prev) => ({ ...prev, [task.id]: false }))
-            }
-          },
-        },
-      ],
-    )
-  }
-
-  async function handleDelete(task: Task) {
-    try {
-      await tasksApi.delete(task.id)
-      removeTask(task.id)
-    } catch {
-      setDeleteError('Could not delete task. Pull down to refresh.')
-    }
-  }
 
   const handleRefresh = useCallback(async () => {
     if (householdId) await load(householdId)
@@ -243,8 +196,8 @@ export default function TasksScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.leaderRow}
           >
-            {sorted.map((member, i) => {
-              const wCount = weeklyCompletions(member.id, completions)
+            {sortedMembers.map((member, i) => {
+              const wCount = memberPoints.get(member.id) ?? 0
               const medal  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
               return (
                 <View key={member.id} style={styles.leaderCard}>
@@ -259,7 +212,6 @@ export default function TasksScreen() {
                 </View>
               )
             })}
-
           </ScrollView>
         </View>
 

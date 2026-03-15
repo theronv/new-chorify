@@ -20,7 +20,7 @@ import { getTimezone } from '@/lib/timezone'
  */
 export const IS_EXPO_GO = Constants.appOwnership === 'expo'
 
-export const BACKGROUND_FETCH_TASK = 'keptt-background-fetch'
+export const BACKGROUND_FETCH_TASK = 'chorify-background-fetch'
 
 // ── Notification preference ───────────────────────────────────────────────────
 

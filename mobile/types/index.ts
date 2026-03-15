@@ -51,6 +51,7 @@ export interface Member {
   emoji:        string
   is_child:     0 | 1
   parent_id:    string | null
+  points_total: number
   push_token:   string | null
   avatar_url:   string | null  // base64 data URI, stored directly in Turso
   created_at:   string
@@ -140,9 +141,10 @@ export interface Completion {
 export interface Reward {
   id:              string
   household_id:    string
-  title:       string
-  emoji:       string
-  assigned_to: string | null  // member id
+  title:           string
+  emoji:           string
+  points_required: number
+  assigned_to:     string | null  // member id
   created_at:      string
 }
 
@@ -205,9 +207,10 @@ export interface CreateMemberRequest {
 }
 
 export interface CreateRewardRequest {
-  title:      string
-  emoji:      string
-  assignedTo?: string
+  title:          string
+  emoji:          string
+  pointsRequired: number
+  assignedTo?:    string
 }
 
 export interface TaskCompleteResponse {

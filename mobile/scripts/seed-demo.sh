@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# ── Keptt Demo Account Seed ─────────────────────────────────────────────────
-# Creates demo@keptt.app / KepttDemo2024 with a sample household and tasks.
+# ── Chorify Demo Account Seed ─────────────────────────────────────────────────
+# Creates demo@chorify.app / ChorifyDemo2024 with a sample household and tasks.
 # Safe to re-run (login will succeed if account already exists).
 # Usage: ./scripts/seed-demo.sh [API_BASE_URL]
 # Default API: https://api-eight-pi-38.vercel.app
@@ -8,11 +8,11 @@
 set -euo pipefail
 
 API="${1:-https://api-eight-pi-38.vercel.app}"
-EMAIL="demo@keptt.app"
-PASS="KepttDemo2024"
+EMAIL="demo@chorify.app"
+PASS="ChorifyDemo2024"
 HOUSEHOLD="The Demo Family"
 
-echo "=== Keptt Demo Seed ==="
+echo "=== Chorify Demo Seed ==="
 echo "API: $API"
 echo ""
 

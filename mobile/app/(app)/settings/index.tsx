@@ -19,7 +19,7 @@ import * as ImagePicker from 'expo-image-picker'
 import * as SecureStore from 'expo-secure-store'
 import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { members as membersApi, households as householdsApi } from '@/lib/api'
+import { members as membersApi, households as householdsApi, auth as authApi } from '@/lib/api'
 import { useAuthStore, useHouseholdStore, setStoreTimezone, getTodayString } from '@/lib/store'
 import { getTimezone, saveTimezone, TIMEZONES, DEFAULT_TIMEZONE } from '@/lib/timezone'
 import {
@@ -240,6 +240,32 @@ export default function SettingsScreen() {
     )
   }
 
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Delete account',
+      'This will permanently delete your account and all your data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            setLoggingOut(true)
+            try {
+              await authApi.deleteMe()
+              await logout()
+              router.replace('/(auth)/login')
+            } catch (e) {
+              Alert.alert('Error', 'Could not delete account. Please try again.')
+            } finally {
+              setLoggingOut(false)
+            }
+          },
+        },
+      ],
+    )
+  }
+
   return (
     <View style={styles.root}>
       {/* Header */}
@@ -445,6 +471,17 @@ export default function SettingsScreen() {
               {loggingOut ? 'Signing out…' : 'Sign out'}
             </Text>
           </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.signOutRow}
+            onPress={confirmDeleteAccount}
+            disabled={loggingOut}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.deleteText}>Delete account</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -499,11 +536,11 @@ export default function SettingsScreen() {
         onRequestClose={closeMemberSheet}
         statusBarTranslucent
       >
-        <View style={[styles.overlay, sheetMaxWidth && styles.overlayTablet]}>
+        <View style={[styles.overlay, sheetMaxWidth ? styles.overlayTablet : {}]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={closeMemberSheet} />
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={[styles.kavContainer, sheetMaxWidth && { maxWidth: sheetMaxWidth }]}
+            style={[styles.kavContainer, sheetMaxWidth ? { maxWidth: sheetMaxWidth } : {}]}
           >
             <View style={[styles.sheet, { paddingBottom: insets.bottom + 16, ...(isLandscape ? { maxHeight: '95%' } : {}) }]}>
               <View style={styles.handle} />
@@ -729,6 +766,11 @@ const styles = StyleSheet.create({
     fontFamily: Font.semiBold,
     fontSize:   FontSize.base,
     color:      Colors.danger,
+  },
+  deleteText: {
+    fontFamily: Font.regular,
+    fontSize:   FontSize.sm,
+    color:      Colors.textTertiary,
   },
 
   // Nav row

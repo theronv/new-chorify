@@ -161,13 +161,13 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={[styles.overlay, sheetMaxWidth && styles.overlayTablet]}>
+      <View style={[styles.overlay, sheetMaxWidth ? styles.overlayTablet : {}]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={[styles.kavContainer, sheetMaxWidth && { maxWidth: sheetMaxWidth }]}
+          style={[styles.kavContainer, sheetMaxWidth ? { maxWidth: sheetMaxWidth } : {}]}
         >
+
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 16, ...(isLandscape ? { maxHeight: '95%' } : {}) }]}>
             <View style={styles.handle} />
             <Text style={styles.sheetTitle}>Edit Task</Text>
@@ -359,8 +359,9 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                         if (newRec !== recurrence) {
                           setNextDue(new Date().toLocaleDateString('en-CA'))
                         }
-                        setRecurrence(newRec)
-                      }}
+                        setRecurrence(newRec as Recurrence)
+                        }}
+
                       style={[styles.chip, active && styles.chipSelected]}
                     >
                       <Text style={[styles.chipLabel, active && styles.chipLabelSelected]}>
@@ -379,7 +380,7 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                     onPress={() => {
                       const n = Math.max(2, customDays - 1)
                       setCustomDays(n)
-                      setRecurrence(`every_${n}_days`)
+                      setRecurrence(`every_${n}_days` as Recurrence)
                     }}
                   >
                     <Text style={styles.stepperBtnText}>−</Text>
@@ -390,7 +391,7 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                     onPress={() => {
                       const n = Math.min(364, customDays + 1)
                       setCustomDays(n)
-                      setRecurrence(`every_${n}_days`)
+                      setRecurrence(`every_${n}_days` as Recurrence)
                     }}
                   >
                     <Text style={styles.stepperBtnText}>+</Text>

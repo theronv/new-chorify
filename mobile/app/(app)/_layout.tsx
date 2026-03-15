@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store'
 import { useAuthStore, useHouseholdStore, setStoreTimezone, selectTodaysTasks, selectIsCompletedToday } from '@/lib/store'
 import { members as membersApi } from '@/lib/api'
 import { getTimezone } from '@/lib/timezone'
+import { initializePurchases } from '@/lib/purchases'
 import {
   IS_EXPO_GO,
   getNotifPref,
@@ -36,6 +37,11 @@ export default function AppLayout() {
 
   // Load timezone preference once on mount
   useEffect(() => { getTimezone().then(setStoreTimezone) }, [])
+
+  // Initialize RevenueCat once authenticated
+  useEffect(() => {
+    if (memberId) initializePurchases(memberId)
+  }, [memberId])
 
   // Keep the app badge in sync with due (uncompleted) task count
   const tasks       = useHouseholdStore((s) => s.tasks)
@@ -134,6 +140,13 @@ export default function AppLayout() {
         options={{
           title:      'Tasks',
           tabBarIcon: tabIcon('list-outline', 'list'),
+        }}
+      />
+      <Tabs.Screen
+        name="rewards"
+        options={{
+          title:      'Rewards',
+          tabBarIcon: tabIcon('gift-outline', 'gift'),
         }}
       />
       <Tabs.Screen
