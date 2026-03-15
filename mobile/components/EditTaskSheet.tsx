@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { Lock } from 'lucide-react-native'
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { tasks as tasksApi } from '@/lib/api'
@@ -480,7 +480,7 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
 
               {/* Private toggle */}
               <View style={styles.privacyRow}>
-                <Ionicons name="lock-closed-outline" size={18} color={isPrivate ? Colors.primary : Colors.textTertiary} />
+                <Lock size={18} color={isPrivate ? Colors.primary : Colors.textTertiary} />
                 <View style={styles.privacyText}>
                   <Text style={[styles.privacyLabel, isPrivate && styles.privacyLabelActive]}>Private task</Text>
                   <Text style={styles.privacySub}>Only visible to you</Text>
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex:            1,
     justifyContent:  'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: Colors.overlayHeavy,
   },
   overlayTablet: {
     alignItems: 'center',
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
 
   // Dropdown modal
   dropdownBackdrop: {
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: Colors.overlayLight,
   },
   dropdownPopupWrapper: {
     flex:              1,

@@ -750,7 +750,7 @@ const styles = StyleSheet.create({
 
   // Picker modal
   pickerScroll: { maxHeight: 320 },
-  pickerBackdrop: { backgroundColor: 'rgba(0,0,0,0.4)' },
+  pickerBackdrop: { backgroundColor: Colors.overlayMedium },
   pickerWrapper: {
     flex:              1,
     alignItems:        'center',

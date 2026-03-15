@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import { FlashList } from '@shopify/flash-list'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Ionicons } from '@expo/vector-icons'
+import { Gift } from 'lucide-react-native'
 import { households as householdsApi } from '@/lib/api'
 import { useAuthStore, useHouseholdStore } from '@/lib/store'
 import { Button } from '@/components/Button'
@@ -122,7 +122,7 @@ export default function RewardsScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 8, paddingLeft: headerPadding + insets.left, paddingRight: headerPadding + insets.right }]}>
         <View style={styles.headerTop}>
           <View style={styles.titleRow}>
-            <Ionicons name="gift" size={32} color={Colors.primary} />
+            <Gift size={32} color={Colors.primary} />
             <Text style={styles.screenTitle}>Rewards</Text>
           </View>
           {me?.is_child === 0 && (
@@ -175,7 +175,7 @@ export default function RewardsScreen() {
 
         {rewards.length === 0 && !isLoading && (
           <View style={styles.emptyState}>
-            <Ionicons name="gift-outline" size={64} color={Colors.textTertiary} style={{ marginBottom: 12 }} />
+            <Gift size={64} color={Colors.textTertiary} style={{ marginBottom: 12 }} />
             <Text style={styles.emptyTitle}>No rewards yet</Text>
             <Text style={styles.emptyBody}>
               {me?.is_child === 0
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontFamily: Font.displayBold, fontSize: FontSize.xl, color: Colors.textPrimary },
   emptyBody: { fontFamily: Font.regular, fontSize: FontSize.base, color: Colors.textSecondary, textAlign: 'center', maxWidth: 280 },
 
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: Colors.overlayHeavy },
   overlayTablet: { alignItems: 'center' },
   sheet: { backgroundColor: Colors.surface, borderTopLeftRadius: Radius['2xl'], borderTopRightRadius: Radius['2xl'], paddingHorizontal: 20, paddingTop: 12 },
   handle: { width: 44, height: 4, borderRadius: 2, backgroundColor: Colors.border, alignSelf: 'center', marginBottom: 16 },

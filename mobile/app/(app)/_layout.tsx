@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Tabs } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { Calendar, ListTodo, Gift, Settings, type LucideIcon } from 'lucide-react-native'
 import * as Notifications from 'expo-notifications'
 import * as SecureStore from 'expo-secure-store'
 import { useAuthStore, useHouseholdStore, setStoreTimezone, selectTodaysTasks, selectIsCompletedToday } from '@/lib/store'
@@ -20,11 +20,9 @@ import { Colors, Shadows } from '@/constants/colors'
 import { Font } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name']
-
-function tabIcon(name: IoniconName, focusedName: IoniconName) {
+function tabIcon(Icon: LucideIcon) {
   return ({ color, focused }: { color: string; focused: boolean }) => (
-    <Ionicons name={focused ? focusedName : name} size={24} color={color} />
+    <Icon size={24} color={color} strokeWidth={focused ? 2.5 : 1.5} />
   )
 }
 
@@ -132,28 +130,28 @@ export default function AppLayout() {
         name="(home)"
         options={{
           title:      'Today',
-          tabBarIcon: tabIcon('calendar-outline', 'calendar'),
+          tabBarIcon: tabIcon(Calendar),
         }}
       />
       <Tabs.Screen
         name="family"
         options={{
           title:      'Tasks',
-          tabBarIcon: tabIcon('list-outline', 'list'),
+          tabBarIcon: tabIcon(ListTodo),
         }}
       />
       <Tabs.Screen
         name="rewards"
         options={{
           title:      'Rewards',
-          tabBarIcon: tabIcon('gift-outline', 'gift'),
+          tabBarIcon: tabIcon(Gift),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title:      'Settings',
-          tabBarIcon: tabIcon('settings-outline', 'settings'),
+          tabBarIcon: tabIcon(Settings),
         }}
       />
     </Tabs>

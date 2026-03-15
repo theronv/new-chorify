@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router'
 import { households as householdsApi } from '@/lib/api'
 import { useAuthStore, useHouseholdStore } from '@/lib/store'
 import { Button } from '@/components/Button'
-import { Colors } from '@/constants/colors'
+import { Colors, Radius } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
 import { PACKS } from '@/constants/packs'
@@ -188,11 +188,11 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: Colors.surface,
-    borderRadius: 18,
+    borderRadius: Radius.lg,
     padding: 16,
     borderWidth: 2,
     borderColor: 'transparent',
-    shadowColor: '#000',
+    shadowColor: Colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   checkMark: {
-    color: '#fff',
+    color: Colors.textOnPrimary,
     fontSize: 14,
     fontFamily: Font.bold,
   },

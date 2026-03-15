@@ -1,37 +1,37 @@
 // ── Chorify font definitions ──────────────────────────────────────────────────
-// Fraunces  → display headings (playful serif)
-// DM Sans   → body, UI text (modern grotesque)
+// Lexend  → display headings (modern geometric sans)
+// Inter   → body, UI text (highly legible grotesque)
 
 import {
-  Fraunces_700Bold,
-  Fraunces_600SemiBold,
-} from '@expo-google-fonts/fraunces'
+  Lexend_700Bold,
+  Lexend_600SemiBold,
+} from '@expo-google-fonts/lexend'
 
 import {
-  DMSans_400Regular,
-  DMSans_500Medium,
-  DMSans_600SemiBold,
-  DMSans_700Bold,
-} from '@expo-google-fonts/dm-sans'
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter'
 
 export const fontMap = {
-  'Fraunces-Bold':         Fraunces_700Bold,
-  'Fraunces-SemiBold':     Fraunces_600SemiBold,
-  'DMSans-Regular':        DMSans_400Regular,
-  'DMSans-Medium':         DMSans_500Medium,
-  'DMSans-SemiBold':       DMSans_600SemiBold,
-  'DMSans-Bold':           DMSans_700Bold,
+  'Lexend-Bold':         Lexend_700Bold,
+  'Lexend-SemiBold':     Lexend_600SemiBold,
+  'Inter-Regular':       Inter_400Regular,
+  'Inter-Medium':        Inter_500Medium,
+  'Inter-SemiBold':      Inter_600SemiBold,
+  'Inter-Bold':          Inter_700Bold,
 } as const
 
 export const Font = {
   // Display
-  displayBold:    'Fraunces-Bold',
-  displaySemiBold:'Fraunces-SemiBold',
+  displayBold:    'Lexend-Bold',
+  displaySemiBold:'Lexend-SemiBold',
   // Body
-  regular:        'DMSans-Regular',
-  medium:         'DMSans-Medium',
-  semiBold:       'DMSans-SemiBold',
-  bold:           'DMSans-Bold',
+  regular:        'Inter-Regular',
+  medium:         'Inter-Medium',
+  semiBold:       'Inter-SemiBold',
+  bold:           'Inter-Bold',
 } as const
 
 export const FontSize = {
