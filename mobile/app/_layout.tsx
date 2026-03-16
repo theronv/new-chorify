@@ -6,7 +6,7 @@ import { Stack, useRouter } from 'expo-router'
 import * as Notifications from 'expo-notifications'
 import * as SplashScreen from 'expo-splash-screen'
 import { useFonts } from 'expo-font'
-import { useAuthStore } from '@/lib/store'
+import { useAuthStore, useHouseholdStore } from '@/lib/store'
 import { fontMap } from '@/constants/fonts'
 
 // Side-effect import — registers the background task definition and sets the
@@ -16,23 +16,25 @@ import '@/lib/notifications'
 SplashScreen.preventAutoHideAsync()
 
 export default function RootLayout() {
-  const hydrate    = useAuthStore((s) => s.hydrate)
-  const isHydrated = useAuthStore((s) => s.isHydrated)
-  const router     = useRouter()
+  const hydrate         = useAuthStore((s) => s.hydrate)
+  const isAuthHydrated  = useAuthStore((s) => s.isHydrated)
+  const hydrateSettings = useHouseholdStore((s) => s.hydrateSettings)
+  const isLoadingSettings = useHouseholdStore((s) => s.isLoadingSettings)
+  const router          = useRouter()
 
   const [fontsLoaded] = useFonts(fontMap)
 
   // Hydrate auth tokens from SecureStore on first mount
   useEffect(() => {
-    hydrate()
+    Promise.all([hydrate(), hydrateSettings()])
   }, [])
 
-  // Hide splash once fonts + auth are ready
+  // Hide splash once fonts + auth + settings are ready
   useEffect(() => {
-    if (fontsLoaded && isHydrated) {
+    if (fontsLoaded && isAuthHydrated && !isLoadingSettings) {
       SplashScreen.hideAsync()
     }
-  }, [fontsLoaded, isHydrated])
+  }, [fontsLoaded, isAuthHydrated, isLoadingSettings])
 
   // ── Notification tap handler ──────────────────────────────────────────────
   // Fires when the user taps a push notification (app in background or killed).
@@ -48,7 +50,7 @@ export default function RootLayout() {
     return () => sub.remove()
   }, [])
 
-  if (!fontsLoaded || !isHydrated) return null
+  if (!fontsLoaded || !isAuthHydrated || isLoadingSettings) return null
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

@@ -43,6 +43,7 @@ export default function HomeScreen() {
   const isLoading   = useHouseholdStore((s) => s.isLoading)
   const loadError   = useHouseholdStore((s) => s.loadError)
   const load        = useHouseholdStore((s) => s.load)
+  const gamificationEnabled = useHouseholdStore((s) => s.gamificationEnabled)
 
   const [sheetVisible,       setSheetVisible]       = useState(false)
   const [editingTask,        setEditingTask]        = useState<Task | null>(null)
@@ -432,7 +433,7 @@ export default function HomeScreen() {
 
         {!hasPending && completed.length > 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>🎉</Text>
+            {gamificationEnabled && <Text style={styles.emptyEmoji}>🎉</Text>}
             <Text style={styles.emptyTitle}>All caught up!</Text>
             <Text style={styles.emptyBody}>
               {activeRoom
@@ -465,13 +466,15 @@ export default function HomeScreen() {
       </ScrollView>}
 
       {/* Confetti — renders off-screen until .start() is called */}
-      <ConfettiCannon
-        ref={confettiRef}
-        count={80}
-        origin={{ x: -10, y: 0 }}
-        autoStart={false}
-        fadeOut
-      />
+      {gamificationEnabled && (
+        <ConfettiCannon
+          ref={confettiRef}
+          count={80}
+          origin={{ x: -10, y: 0 }}
+          autoStart={false}
+          fadeOut
+        />
+      )}
 
       <AddTaskSheet
         visible={sheetVisible}
