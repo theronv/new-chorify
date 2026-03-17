@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import ConfettiCannon from 'react-native-confetti-cannon'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Search, List } from 'lucide-react-native'
+import { Search, List as ListIcon } from 'lucide-react-native'
 import { useTaskActions } from '@/lib/hooks'
 import {
   selectIsCompletedToday,
@@ -43,6 +43,7 @@ export default function HomeScreen() {
   const isLoading   = useHouseholdStore((s) => s.isLoading)
   const loadError   = useHouseholdStore((s) => s.loadError)
   const load        = useHouseholdStore((s) => s.load)
+  const gamificationEnabled = useHouseholdStore((s) => s.gamificationEnabled)
 
   const [sheetVisible,       setSheetVisible]       = useState(false)
   const [editingTask,        setEditingTask]        = useState<Task | null>(null)
@@ -336,8 +337,15 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* Initial loading state */}
+      {isLoading && tasks.length === 0 && (
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      )}
+
       {/* Task list */}
-      {loadError === null && <ScrollView
+      {loadError === null && !isLoading && <ScrollView
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
@@ -404,10 +412,11 @@ export default function HomeScreen() {
         {/* Empty states */}
         {!hasPending && completed.length === 0 && (
           <View style={styles.emptyState}>
-            {filterRoomId || filterCategory || filterAssignedTo
-              ? <Search size={64} color={Colors.textTertiary} style={{ marginBottom: 12 }} />
-              : <List size={64} color={Colors.textTertiary} style={{ marginBottom: 12 }} />
-            }
+            <Search
+              size={64}
+              color={Colors.textTertiary}
+              style={{ marginBottom: 12 }}
+            />
             <Text style={styles.emptyTitle}>
               {filterRoomId || filterCategory || filterAssignedTo ? 'No matching tasks' : 'No tasks yet'}
             </Text>
@@ -430,7 +439,7 @@ export default function HomeScreen() {
 
         {!hasPending && completed.length > 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>🎉</Text>
+            {gamificationEnabled && <Text style={styles.emptyEmoji}>🎉</Text>}
             <Text style={styles.emptyTitle}>All caught up!</Text>
             <Text style={styles.emptyBody}>
               {activeRoom
@@ -463,13 +472,15 @@ export default function HomeScreen() {
       </ScrollView>}
 
       {/* Confetti — renders off-screen until .start() is called */}
-      <ConfettiCannon
-        ref={confettiRef}
-        count={80}
-        origin={{ x: -10, y: 0 }}
-        autoStart={false}
-        fadeOut
-      />
+      {gamificationEnabled && (
+        <ConfettiCannon
+          ref={confettiRef}
+          count={80}
+          origin={{ x: -10, y: 0 }}
+          autoStart={false}
+          fadeOut
+        />
+      )}
 
       <AddTaskSheet
         visible={sheetVisible}
@@ -709,6 +720,12 @@ const styles = StyleSheet.create({
     color:      Colors.textSecondary,
     textAlign:  'center',
     maxWidth:   280,
+  },
+  loadingState: {
+    flex:           1,
+    alignItems:     'center',
+    justifyContent: 'center',
+    paddingBottom:  100,
   },
   retryBtn: {
     marginTop:         16,

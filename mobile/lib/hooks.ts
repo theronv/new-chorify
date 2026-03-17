@@ -39,6 +39,7 @@ export function useTaskActions(confettiRef?: React.RefObject<any>) {
               confettiRef?.current?.start()
             } catch (e) {
               console.error('[useTaskActions] Complete failed:', e)
+              setDeleteError('Failed to complete task. Please check your connection.')
             } finally {
               setCompleting((prev) => ({ ...prev, [task.id]: false }))
             }
@@ -54,7 +55,7 @@ export function useTaskActions(confettiRef?: React.RefObject<any>) {
       removeTask(task.id)
     } catch (e) {
       console.error('[useTaskActions] Delete failed:', e)
-      setDeleteError('Could not delete task. Pull down to refresh.')
+      setDeleteError('Failed to delete task. Please check your connection.')
     }
   }
 

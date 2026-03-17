@@ -2,7 +2,7 @@
 // Import from the /web subpath — the standard @libsql/client uses Node.js
 // WebSockets and will crash in Vercel Edge Runtime. The /web client uses
 // Turso's HTTP API instead, which works everywhere.
-import { createClient, type Client } from '@libsql/client/web'
+import { createClient, type Client } from '@libsql/client'
 
 let _client: Client | null = null
 

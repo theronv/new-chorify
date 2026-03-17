@@ -1,0 +1,105 @@
+
+> mobile@1.0.0 ios
+> expo run:ios
+
+env: load .env.local
+env: export EXPO_PUBLIC_API_URL EXPO_PUBLIC_REVENUECAT_API_KEY_IOS EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID
+› Skipping dev server
+› Planning build
+› Preparing Pods/EXApplication-ExpoApplication_privacy » ResourceBundle-ExpoApplication_privacy-EXApplication-Info.plist
+› Executing react-native Pods/hermes-engine » [CP-User] [Hermes] Replace Hermes for the right configuration, if needed
+› Executing react-native Pods/ReactNativeDependencies » [CP-User] [RNDeps] Replace React Native Dependencies for the right configuration, if needed
+› Executing react-native Pods/ReactNativeDependencies » [CP] Copy XCFrameworks
+› Executing react-native Pods/React-Core-prebuilt » [CP-User] [RNDeps] Replace React Native Core for the right configuration, if needed
+› Executing react-native Pods/React-Core-prebuilt » [CP] Copy XCFrameworks
+› Preparing Pods/React-Core-React-Core_privacy » ResourceBundle-React-Core_privacy-React-Core-Info.plist
+› Preparing Pods/React-cxxreact-React-cxxreact_privacy » ResourceBundle-React-cxxreact_privacy-React-cxxreact-Info.plist
+› Executing react-native Pods/React-RCTFBReactNativeSpec » [CP-User] [RN]Check FBReactNativeSpec
+› Compiling mobile Pods/ReactCodegen » ComponentDescriptors.cpp
+› Compiling mobile Pods/ReactCodegen » ShadowNodes.cpp
+› Compiling mobile Pods/ReactCodegen » ShadowNodes.cpp
+› Compiling mobile Pods/ReactCodegen » safeareacontextJSI-generated.cpp
+› Compiling mobile Pods/ReactCodegen » States.cpp
+› Compiling mobile Pods/ReactCodegen » rnscreensJSI-generated.cpp
+› Compiling mobile Pods/ReactCodegen » safeareacontext-generated.mm
+› Compiling mobile Pods/ReactCodegen » States.cpp
+› Compiling mobile Pods/ReactCodegen » States.cpp
+› Compiling mobile Pods/ReactCodegen » rnscreens-generated.mm
+› Compiling mobile Pods/ReactCodegen » ShadowNodes.cpp
+› Compiling mobile Pods/ReactCodegen » RNDateTimePickerCGenJSI-generated.cpp
+› Compiling mobile Pods/ReactCodegen » RNDateTimePickerCGen-generated.mm
+› Compiling mobile Pods/ReactCodegen » RCTUnstableModulesRequiringMainQueueSetupProvider.mm
+› Compiling mobile Pods/ReactCodegen » RCTThirdPartyComponentsProvider.mm
+› Compiling mobile Pods/ReactCodegen » RCTModulesConformingToProtocolsProvider.mm
+› Compiling mobile Pods/ReactCodegen » RCTModuleProviders.mm
+› Compiling mobile Pods/ReactCodegen » Props.cpp
+› Compiling mobile Pods/ReactCodegen » Props.cpp
+› Compiling mobile Pods/ReactCodegen » Props.cpp
+› Compiling mobile Pods/ReactCodegen » EventEmitters.cpp
+› Compiling mobile Pods/ReactCodegen » EventEmitters.cpp
+› Compiling mobile Pods/ReactCodegen » EventEmitters.cpp
+› Compiling mobile Pods/ReactCodegen » ComponentDescriptors.cpp
+› Compiling mobile Pods/ReactCodegen » ComponentDescriptors.cpp
+› Packaging mobile Pods/ReactCodegen » libReactCodegen.a
+› Preparing expo-constants Pods/EXConstants-EXConstants » ResourceBundle-EXConstants-EXConstants-Info.plist
+› Preparing Pods/EXConstants-ExpoConstants_privacy » ResourceBundle-ExpoConstants_privacy-EXConstants-Info.plist
+› Executing expo-constants Pods/EXConstants » [CP-User] Generate app.config for prebuilt Constants.manifest
+› Preparing Pods/EXNotifications-ExpoNotifications_privacy » ResourceBundle-ExpoNotifications_privacy-EXNotifications-Info.plist
+› Preparing Pods/EXTaskManager-ExpoTaskManager_privacy » ResourceBundle-ExpoTaskManager_privacy-EXTaskManager-Info.plist
+› Compiling mobile Pods/ReactAppDependencyProvider » RCTAppDependencyProvider.mm
+› Packaging mobile Pods/ReactAppDependencyProvider » libReactAppDependencyProvider.a
+› Preparing Pods/ExpoDevice-ExpoDevice_privacy » ResourceBundle-ExpoDevice_privacy-ExpoDevice-Info.plist
+› Preparing Pods/ExpoFileSystem-ExpoFileSystem_privacy » ResourceBundle-ExpoFileSystem_privacy-ExpoFileSystem-Info.plist
+› Preparing Pods/SDWebImage-SDWebImage » ResourceBundle-SDWebImage-SDWebImage-Info.plist
+› Preparing Pods/ExpoSystemUI-ExpoSystemUI_privacy » ResourceBundle-ExpoSystemUI_privacy-ExpoSystemUI-Info.plist
+› Preparing react-native-purchases Pods/PurchasesHybridCommon-PurchasesHybridCommon » ResourceBundle-PurchasesHybridCommon-PurchasesHybridCommon-Info.plist
+› Preparing react-native-purchases Pods/RevenueCat-RevenueCat » ResourceBundle-RevenueCat-RevenueCat-Info.plist
+› Preparing Pods/expo-dev-menu-EXDevMenu » ResourceBundle-EXDevMenu-expo-dev-menu-Info.plist
+› Preparing Pods/expo-dev-launcher-EXDevLauncher » ResourceBundle-EXDevLauncher-expo-dev-launcher-Info.plist
+› Executing Chorify » [Expo] Configure project
+› Linking   Chorify » Chorify.debug.dylib
+› Linking   Chorify » Chorify
+› Executing Chorify » Bundle React Native code and images
+› Executing Chorify » [CP] Copy Pods Resources
+› Executing Chorify » [CP] Embed Pods Frameworks
+› Preparing Chorify » Info.plist
+› Generating debug Chorify » Chorify.app.dSYM
+› Generating debug Chorify » Chorify.app.dSYM
+› Signing   Chorify » Chorify.debug.dylib
+› Signing   Chorify » __preview.dylib
+› Signing   Chorify » Chorify.app
+    Run script build phase '[CP-User] [Hermes] Replace Hermes for the right configuration, if needed' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'hermes-engine' from project 'Pods')
+› Build Succeeded
+
+› 0 error(s), and 1 warning(s)
+
+Waiting on http://localhost:8081
+› Installing /Users/theron/Library/Developer/Xcode/DerivedData/Chorify-djxvxssbmvetcfdrklefceuletcw/Build/Products/Debug-iphonesimulator/Chorify.app
+› Installing on iPhone 17 Pro
+› Opening on iPhone 17 Pro (com.chorify.app)
+› Opening exp+chorify://expo-development-client/?url=http%3A%2F%2F192.168.68.87%3A8081 on iPhone 17 Pro
+› Opening the iOS simulator, this might take a moment.
+Error: xcrun simctl openurl BAAA8840-685E-4E7C-8BFB-6A1CB897B1B5 exp+chorify://expo-development-client/?url=http%3A%2F%2F192.168.68.87%3A8081 exited with non-zero code: 60
+An error was encountered processing the command (domain=NSPOSIXErrorDomain, code=60):
+Simulator device failed to open exp+chorify://expo-development-client/?url=http%3A%2F%2F192.168.68.87%3A8081.
+Operation timed out
+Underlying error (domain=NSPOSIXErrorDomain, code=60):
+	The operation couldn’t be completed. Operation timed out
+	Operation timed out
+Error: xcrun simctl openurl BAAA8840-685E-4E7C-8BFB-6A1CB897B1B5 exp+chorify://expo-development-client/?url=http%3A%2F%2F192.168.68.87%3A8081 exited with non-zero code: 60
+    at ChildProcess.completionListener (/Users/theron/new-chorify/mobile/node_modules/@expo/spawn-async/src/spawnAsync.ts:67:13)
+    at Object.onceWrapper (node:events:623:12)
+    at ChildProcess.emit (node:events:508:20)
+    at maybeClose (node:internal/child_process:1084:16)
+    at Socket.<anonymous> (node:internal/child_process:456:11)
+    at Socket.emit (node:events:508:20)
+    at Pipe.<anonymous> (node:net:347:12)
+    ...
+    at spawnAsync (/Users/theron/new-chorify/mobile/node_modules/@expo/spawn-async/src/spawnAsync.ts:28:21)
+    at xcrunAsync (/Users/theron/new-chorify/mobile/node_modules/@expo/cli/src/start/platforms/ios/xcrun.ts:21:28)
+    at simctlAsync (/Users/theron/new-chorify/mobile/node_modules/@expo/cli/src/start/platforms/ios/simctl.ts:355:28)
+    at Object.openUrlAsync (/Users/theron/new-chorify/mobile/node_modules/@expo/cli/src/start/platforms/ios/simctl.ts:198:11)
+    at AppleDeviceManager.openUrlAsync (/Users/theron/new-chorify/mobile/node_modules/@expo/cli/src/start/platforms/ios/AppleDeviceManager.ts:194:7)
+    at ApplePlatformManager.openProjectInCustomRuntimeAsync (/Users/theron/new-chorify/mobile/node_modules/@expo/cli/src/start/platforms/PlatformManager.ts:160:5)
+    at launchAppAsync (/Users/theron/new-chorify/mobile/node_modules/@expo/cli/src/run/ios/launchApp.ts:59:3)
+    at runIosAsync (/Users/theron/new-chorify/mobile/node_modules/@expo/cli/src/run/ios/runIosAsync.ts:174:3)

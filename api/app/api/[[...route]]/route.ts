@@ -20,7 +20,7 @@ import roomRoutes from '../../../lib/routes/rooms'
 import categoryRoutes from '../../../lib/routes/categories'
 import cronRoutes from '../../../lib/routes/cron'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 
 const app = new Hono().basePath('/api')
 

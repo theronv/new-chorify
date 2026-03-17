@@ -4,6 +4,7 @@
     "slug": "chorify",
     "scheme": "chorify",
     "version": "1.0.0",
+    "newArchEnabled": false,
     "orientation": "default",
     "icon": "./assets/AppIcon~ios-marketing.png",
     "userInterfaceStyle": "light",
@@ -49,7 +50,8 @@
       "@react-native-community/datetimepicker"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": true,
+      "newArchEnabled": false
     },
     "extra": {
       "eas": {

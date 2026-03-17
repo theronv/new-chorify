@@ -52,6 +52,7 @@ export default function TasksScreen() {
   const rooms       = useHouseholdStore((s) => s.rooms)
   const isLoading   = useHouseholdStore((s) => s.isLoading)
   const load        = useHouseholdStore((s) => s.load)
+  const gamificationEnabled = useHouseholdStore((s) => s.gamificationEnabled)
 
   const [sheetVisible, setSheetVisible] = useState(false)
   const [editingTask, setEditingTask]   = useState<Task | null>(null)
@@ -189,31 +190,33 @@ export default function TasksScreen() {
       >
 
         {/* ── This Week leaderboard ─────────────────────────────────────────── */}
-        <View style={styles.weekSection}>
-          <Text style={styles.weekLabel}>This Week</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.leaderRow}
-          >
-            {sortedMembers.map((member, i) => {
-              const wCount = memberPoints.get(member.id) ?? 0
-              const medal  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
-              return (
-                <View key={member.id} style={styles.leaderCard}>
-                  <Text style={styles.leaderRank}>{medal ?? `#${i + 1}`}</Text>
-                  <MemberAvatar member={member} size={36} />
-                  <Text style={styles.leaderName} numberOfLines={1}>
-                    {member.display_name}
-                  </Text>
-                  <Text style={styles.leaderCount}>
-                    {wCount} {wCount === 1 ? 'task' : 'tasks'}
-                  </Text>
-                </View>
-              )
-            })}
-          </ScrollView>
-        </View>
+        {gamificationEnabled && (
+          <View style={styles.weekSection}>
+            <Text style={styles.weekLabel}>This Week</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.leaderRow}
+            >
+              {sortedMembers.map((member, i) => {
+                const wCount = memberPoints.get(member.id) ?? 0
+                const medal  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
+                return (
+                  <View key={member.id} style={styles.leaderCard}>
+                    <Text style={styles.leaderRank}>{medal ?? `#${i + 1}`}</Text>
+                    <MemberAvatar member={member} size={36} />
+                    <Text style={styles.leaderName} numberOfLines={1}>
+                      {member.display_name}
+                    </Text>
+                    <Text style={styles.leaderCount}>
+                      {wCount} {wCount === 1 ? 'task' : 'tasks'}
+                    </Text>
+                  </View>
+                )
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         {/* ── Filter pills ─────────────────────────────────────────────────── */}
         <View style={styles.filterRow}>

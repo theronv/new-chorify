@@ -3,23 +3,23 @@
 
 export const Colors = {
   // Brand — vibrant blue
-  primary:        'hsl(217, 91%, 60%)',
+  primary:        'hsl(217, 91%, 48%)', // Darkened for better contrast with white text
   primaryLight:   'hsl(217, 91%, 96%)',
-  primaryDark:    'hsl(217, 91%, 45%)',
+  primaryDark:    'hsl(217, 91%, 40%)',
 
   // Accent — energetic coral-orange
   accent:         'hsl(14, 100%, 64%)',
 
   // Points / gamification
-  gold:           'hsl(38, 92%, 55%)',
+  gold:           'hsl(38, 92%, 20%)', // Darkened for text-on-light-bg contrast
   goldLight:      'hsl(38, 92%, 93%)',
 
   // Semantic
-  success:        'hsl(145, 70%, 45%)',
+  success:        'hsl(145, 70%, 25%)', // Darkened for text-on-light-bg contrast
   successLight:   'hsl(145, 70%, 93%)',
-  warning:        'hsl(38, 92%, 55%)',
+  warning:        'hsl(38, 92%, 20%)',  // Darkened significantly for text contrast
   warningLight:   'hsl(38, 92%, 93%)',
-  danger:         'hsl(0, 90%, 60%)',
+  danger:         'hsl(0, 90%, 25%)',   // Darkened significantly for text contrast
   dangerLight:    'hsl(0, 90%, 95%)',
 
   // Neutrals
@@ -31,14 +31,14 @@ export const Colors = {
 
   // Text
   textPrimary:    'hsl(222, 28%, 18%)',
-  textSecondary:  'hsl(220, 10%, 50%)',
-  textTertiary:   'hsl(220, 10%, 70%)',
+  textSecondary:  'hsl(220, 10%, 35%)', // Darkened for legibility (WCAG AA)
+  textTertiary:   'hsl(220, 10%, 55%)',
   textOnPrimary:  'hsl(0, 0%, 100%)',
   textOnGold:     'hsl(30, 60%, 20%)',
 
   // Tab bar
-  tabActive:      'hsl(217, 91%, 60%)',
-  tabInactive:    'hsl(220, 10%, 50%)',
+  tabActive:      'hsl(217, 91%, 48%)',
+  tabInactive:    'hsl(220, 10%, 40%)',
   tabBackground:  'hsl(0, 0%, 100%)',
 
   // Overlays (standardised backdrop tokens)
@@ -48,12 +48,12 @@ export const Colors = {
 
   // Category badge colors (legacy static map — kept for reference)
   category: {
-    home:    { bg: 'hsl(217, 91%, 96%)', text: 'hsl(217, 91%, 45%)' },
-    pet:     { bg: 'hsl(25, 70%, 94%)',  text: 'hsl(25, 60%, 35%)' },
-    outdoor: { bg: 'hsl(145, 50%, 94%)', text: 'hsl(145, 50%, 30%)' },
-    health:  { bg: 'hsl(340, 50%, 94%)', text: 'hsl(340, 50%, 35%)' },
-    family:  { bg: 'hsl(38, 70%, 94%)',  text: 'hsl(38, 60%, 30%)' },
-    vehicle: { bg: 'hsl(200, 60%, 94%)', text: 'hsl(200, 60%, 30%)' },
+    home:    { bg: 'hsl(217, 91%, 96%)', text: 'hsl(217, 91%, 35%)' },
+    pet:     { bg: 'hsl(25, 70%, 94%)',  text: 'hsl(25, 60%, 25%)' },
+    outdoor: { bg: 'hsl(145, 50%, 94%)', text: 'hsl(145, 50%, 20%)' },
+    health:  { bg: 'hsl(340, 50%, 94%)', text: 'hsl(340, 50%, 25%)' },
+    family:  { bg: 'hsl(38, 70%, 94%)',  text: 'hsl(38, 60%, 20%)' },
+    vehicle: { bg: 'hsl(200, 60%, 94%)', text: 'hsl(200, 60%, 20%)' },
   },
 } as const
 
@@ -63,14 +63,14 @@ export type ColorKey = keyof typeof Colors
 // Assign colors by sort_order % palette length.
 // Vibrant, modern palette that complements the new blue primary.
 export const CATEGORY_COLORS: { bg: string; text: string }[] = [
-  { bg: 'hsl(217, 91%, 96%)', text: 'hsl(217, 91%, 45%)' }, // 0: blue     (home)
-  { bg: 'hsl(25, 70%, 94%)',  text: 'hsl(25, 60%, 35%)' },  // 1: brown    (pet)
-  { bg: 'hsl(145, 50%, 94%)', text: 'hsl(145, 50%, 30%)' },  // 2: green    (outdoor)
-  { bg: 'hsl(340, 50%, 94%)', text: 'hsl(340, 50%, 35%)' },  // 3: rose     (health)
-  { bg: 'hsl(38, 70%, 94%)',  text: 'hsl(38, 60%, 30%)' },   // 4: amber    (family)
-  { bg: 'hsl(200, 60%, 94%)', text: 'hsl(200, 60%, 30%)' },  // 5: cyan     (vehicle)
-  { bg: 'hsl(270, 50%, 94%)', text: 'hsl(270, 50%, 35%)' },  // 6: purple
-  { bg: 'hsl(0, 70%, 95%)',   text: 'hsl(0, 70%, 40%)' },    // 7: red
+  { bg: 'hsl(217, 91%, 96%)', text: 'hsl(217, 91%, 35%)' }, // 0: blue     (home)
+  { bg: 'hsl(25, 70%, 94%)',  text: 'hsl(25, 60%, 25%)' },  // 1: brown    (pet)
+  { bg: 'hsl(145, 50%, 94%)', text: 'hsl(145, 50%, 20%)' },  // 2: green    (outdoor)
+  { bg: 'hsl(340, 50%, 94%)', text: 'hsl(340, 50%, 25%)' },  // 3: rose     (health)
+  { bg: 'hsl(38, 70%, 94%)',  text: 'hsl(38, 60%, 20%)' },   // 4: amber    (family)
+  { bg: 'hsl(200, 60%, 94%)', text: 'hsl(200, 60%, 20%)' },  // 5: cyan     (vehicle)
+  { bg: 'hsl(270, 50%, 94%)', text: 'hsl(270, 50%, 25%)' },  // 6: purple
+  { bg: 'hsl(0, 70%, 95%)',   text: 'hsl(0, 70%, 25%)' },    // 7: red
 ]
 
 /**

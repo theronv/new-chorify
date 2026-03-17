@@ -26,6 +26,9 @@ export const Input = forwardRef<TextInput, InputProps>(
 
         <TextInput
           ref={ref}
+          accessibilityLabel={label}
+          accessibilityRole="text"
+          accessibilityState={{ disabled: props.editable === false }}
           style={[
             styles.input,
             focused && styles.inputFocused,

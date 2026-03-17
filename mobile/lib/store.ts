@@ -12,9 +12,12 @@ import type {
   Room,
   Task,
 } from '@/types'
+import * as SecureStore from 'expo-secure-store'
 import { auth as authApi, getStoredTokens, storeTokens, storeAccessToken, migrateSecureStoreKeys, households as householdsApi, rooms as roomsApi } from '@/lib/api'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const GAMIFICATION_KEY = 'chorify.gamification_enabled'
 
 function decodeJwt(token: string): { sub: string; hid: string | null; mid: string | null } | null {
   try {
@@ -151,8 +154,12 @@ interface HouseholdState {
   categories:  HouseholdCategory[]
   isLoading:   boolean
   loadError:   string | null
+  gamificationEnabled: boolean
+  isLoadingSettings:   boolean
 
   load:               (householdId: string, silent?: boolean) => Promise<void>
+  hydrateSettings:    () => Promise<void>
+  setGamificationEnabled: (enabled: boolean) => Promise<void>
   addCompletion:      (c: Completion) => void
   updateTask:         (taskId: string, patch: Partial<Task>) => void
   addTask:            (task: Task) => void
@@ -180,6 +187,28 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
   categories:  [],
   isLoading:   false,
   loadError:   null,
+  gamificationEnabled: false,
+  isLoadingSettings:   false,
+
+  hydrateSettings: async () => {
+    set({ isLoadingSettings: true })
+    try {
+      const stored = await SecureStore.getItemAsync(GAMIFICATION_KEY)
+      // Defaults to false if not set
+      set({ gamificationEnabled: stored === 'true' })
+    } catch {
+      set({ gamificationEnabled: false })
+    } finally {
+      set({ isLoadingSettings: false })
+    }
+  },
+
+  setGamificationEnabled: async (enabled: boolean) => {
+    set({ gamificationEnabled: enabled })
+    try {
+      await SecureStore.setItemAsync(GAMIFICATION_KEY, enabled ? 'true' : 'false')
+    } catch {}
+  },
 
   load: async (householdId, silent = false) => {
     set({ isLoading: !silent, loadError: null, householdId })

@@ -63,6 +63,8 @@ export default function SettingsScreen() {
   const members     = useHouseholdStore((s) => s.members)
   const tasks       = useHouseholdStore((s) => s.tasks)
   const completions = useHouseholdStore((s) => s.completions)
+  const gamificationEnabled = useHouseholdStore((s) => s.gamificationEnabled)
+  const setGamificationEnabled = useHouseholdStore((s) => s.setGamificationEnabled)
 
   const me           = members.find((m) => m.id === memberId)
   const updateMember = useHouseholdStore((s) => s.updateMember)
@@ -456,6 +458,26 @@ export default function SettingsScreen() {
               </TouchableOpacity>
             </View>
           ))}
+        </View>
+
+        {/* ── Features ───────────────────────────────────────────────── */}
+        <Text style={styles.sectionLabel}>Features</Text>
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.notifRow}
+            onPress={() => setGamificationEnabled(!gamificationEnabled)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.notifInfo}>
+              <Text style={styles.notifLabel}>Points & Rewards</Text>
+              <Text style={styles.notifDesc}>
+                Enable leaderboard, points, and rewards for the family.
+              </Text>
+            </View>
+            <View style={[styles.toggle, gamificationEnabled && styles.toggleActive]}>
+              <View style={[styles.toggleKnob, gamificationEnabled && styles.toggleKnobActive]} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* ── Account ────────────────────────────────────────────────── */}
@@ -979,5 +1001,27 @@ const styles = StyleSheet.create({
     color:      Colors.primary,
     width:      20,
     textAlign:  'right',
+  },
+
+  // Toggle
+  toggle: {
+    width:           44,
+    height:          24,
+    borderRadius:    12,
+    backgroundColor: Colors.border,
+    padding:         2,
+    justifyContent:  'center',
+  },
+  toggleActive: {
+    backgroundColor: Colors.primary,
+  },
+  toggleKnob: {
+    width:           20,
+    height:          20,
+    borderRadius:    10,
+    backgroundColor: '#fff',
+  },
+  toggleKnobActive: {
+    alignSelf: 'flex-end',
   },
 })

@@ -1,0 +1,125 @@
+
+> chorify-api@0.1.0 dev
+> next dev --port 3001
+
+   ▲ Next.js 15.5.12
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.68.87:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1217ms
+ ✓ Compiled /api/[[...route]] in 405ms (604 modules)
+<-- POST /api/auth/signup?route=auth&route=signup
+[chorify-api] LibsqlError: URL_SCHEME_NOT_SUPPORTED: The client that uses Web standard APIs supports only "libsql:", "wss:", "ws:", "https:" and "http:" URLs, got "file:". For more information, please read https://github.com/libsql/libsql-client-ts#supported-urls
+    at getDb (lib/db.ts:20:25)
+    at eval (lib/routes/auth.ts:43:19)
+    at async eval (lib/middleware.ts:63:5)
+  18 |   }
+  19 |
+> 20 |   _client = createClient({ url, authToken })
+     |                         ^
+  21 |   return _client
+  22 | }
+  23 | {
+  code: 'URL_SCHEME_NOT_SUPPORTED',
+  rawCode: undefined
+}
+--> POST /api/auth/signup?route=auth&route=signup [31m500[0m 11ms
+ POST /api/auth/signup 500 in 555ms
+ ✓ Compiled in 221ms (410 modules)
+<-- POST /api/auth/signup?route=auth&route=signup
+[chorify-api] LibsqlError: URL_SCHEME_NOT_SUPPORTED: The client that uses Web standard APIs supports only "libsql:", "wss:", "ws:", "https:" and "http:" URLs, got "file:". For more information, please read https://github.com/libsql/libsql-client-ts#supported-urls
+    at getDb (lib/db.ts:20:25)
+    at eval (lib/routes/auth.ts:43:19)
+    at async eval (lib/middleware.ts:63:5)
+  18 |   }
+  19 |
+> 20 |   _client = createClient({ url, authToken })
+     |                         ^
+  21 |   return _client
+  22 | }
+  23 | {
+  code: 'URL_SCHEME_NOT_SUPPORTED',
+  rawCode: undefined
+}
+--> POST /api/auth/signup?route=auth&route=signup [31m500[0m 6ms
+ POST /api/auth/signup 500 in 127ms
+ ✓ Compiled in 17ms
+ ○ Compiling /api/[[...route]] ...
+ ✓ Compiled /api/[[...route]] in 546ms (237 modules)
+<-- POST /api/auth/signup
+--> POST /api/auth/signup [32m201[0m 23ms
+ POST /api/auth/signup 201 in 1931ms
+<-- POST /api/auth/login
+--> POST /api/auth/login [33m401[0m 47ms
+ POST /api/auth/login 401 in 397ms
+<-- POST /api/auth/login
+--> POST /api/auth/login [33m401[0m 13ms
+ POST /api/auth/login 401 in 80ms
+<-- POST /api/auth/login
+--> POST /api/auth/login [33m401[0m 9ms
+ POST /api/auth/login 401 in 39ms
+<-- POST /api/auth/signup
+--> POST /api/auth/signup [32m201[0m 67ms
+ POST /api/auth/signup 201 in 115ms
+<-- POST /api/households
+--> POST /api/households [32m201[0m 54ms
+ POST /api/households 201 in 96ms
+<-- POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks
+<-- POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks
+<-- POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks
+--> POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks [32m201[0m 8ms
+--> POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks [32m201[0m 7ms
+--> POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks [32m201[0m 7ms
+ POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks 201 in 47ms
+ POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks 201 in 40ms
+ POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks 201 in 37ms
+<-- POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks
+<-- POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks
+<-- POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks
+--> POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks [32m201[0m 4ms
+--> POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks [32m201[0m 4ms
+--> POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks [32m201[0m 4ms
+ POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks 201 in 51ms
+ POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks 201 in 49ms
+ POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks 201 in 49ms
+<-- POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks
+--> POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks [32m201[0m 2ms
+ POST /api/households/610b133bcaf1c899e087e6a55f390039/tasks 201 in 7ms
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/members
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/tasks
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039 [32m200[0m 3ms
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/members [32m200[0m 3ms
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/tasks [32m200[0m 3ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039 200 in 17ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/members 200 in 16ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/tasks 200 in 16ms
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/completions
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/rooms
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/categories
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/completions [32m200[0m 3ms
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/rooms [32m200[0m 3ms
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/categories [32m200[0m 3ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/completions 200 in 27ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/rooms 200 in 27ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/categories 200 in 28ms
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039 [32m200[0m 1ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039 200 in 13ms
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/members
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/tasks
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/completions
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/rooms
+<-- GET /api/households/610b133bcaf1c899e087e6a55f390039/categories
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/members [32m200[0m 2ms
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/tasks [32m200[0m 2ms
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/completions [32m200[0m 1ms
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/rooms [32m200[0m 1ms
+--> GET /api/households/610b133bcaf1c899e087e6a55f390039/categories [32m200[0m 1ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/members 200 in 35ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/tasks 200 in 35ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/completions 200 in 35ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/rooms 200 in 34ms
+ GET /api/households/610b133bcaf1c899e087e6a55f390039/categories 200 in 34ms
