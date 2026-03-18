@@ -142,7 +142,7 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="rewards"
+        name="rewards/index"
         options={{
           title:      'Rewards',
           tabBarIcon: tabIcon(Gift),
