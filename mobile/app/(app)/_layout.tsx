@@ -31,6 +31,7 @@ export default function AppLayout() {
   const memberId     = useAuthStore((s) => s.memberId)
   const load         = useHouseholdStore((s) => s.load)
   const updateMember = useHouseholdStore((s) => s.updateMember)
+  const gamificationEnabled = useHouseholdStore((s) => s.gamificationEnabled)
   const { isTablet } = useLayout()
 
   // Load timezone preference once on mount
