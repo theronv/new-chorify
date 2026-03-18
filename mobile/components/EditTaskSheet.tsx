@@ -360,7 +360,7 @@ export function EditTaskSheet({ task, visible, onClose }: EditTaskSheetProps) {
                           setNextDue(new Date().toLocaleDateString('en-CA'))
                         }
                         setRecurrence(newRec as Recurrence)
-                        }}
+                      }}
 
                       style={[styles.chip, active && styles.chipSelected]}
                     >

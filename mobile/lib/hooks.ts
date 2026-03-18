@@ -6,7 +6,9 @@ import type { Task } from '@/types'
 
 export function useTaskActions(confettiRef?: React.RefObject<any>) {
   const memberId = useAuthStore((s) => s.memberId)
-  const { addCompletion, updateTask, removeTask } = useHouseholdStore()
+  const addCompletion = useHouseholdStore((s) => s.addCompletion)
+  const updateTask    = useHouseholdStore((s) => s.updateTask)
+  const removeTask    = useHouseholdStore((s) => s.removeTask)
 
   const [completing, setCompleting] = useState<Record<string, boolean>>({})
   const [deleteError, setDeleteError] = useState<string | null>(null)
