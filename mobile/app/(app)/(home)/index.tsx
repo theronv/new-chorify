@@ -13,7 +13,7 @@ import {
 } from 'react-native'
 import ConfettiCannon from 'react-native-confetti-cannon'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Search, List as ListIcon } from 'lucide-react-native'
+import { Search, List } from 'lucide-react-native'
 import { useTaskActions } from '@/lib/hooks'
 import {
   selectIsCompletedToday,
@@ -412,11 +412,10 @@ export default function HomeScreen() {
         {/* Empty states */}
         {!hasPending && completed.length === 0 && (
           <View style={styles.emptyState}>
-            <Search
-              size={64}
-              color={Colors.textTertiary}
-              style={{ marginBottom: 12 }}
-            />
+            {filterRoomId || filterCategory || filterAssignedTo
+              ? <Search size={64} color={Colors.textTertiary} style={{ marginBottom: 12 }} />
+              : <List size={64} color={Colors.textTertiary} style={{ marginBottom: 12 }} />
+            }
             <Text style={styles.emptyTitle}>
               {filterRoomId || filterCategory || filterAssignedTo ? 'No matching tasks' : 'No tasks yet'}
             </Text>

@@ -140,13 +140,15 @@ export default function AppLayout() {
           tabBarIcon: tabIcon(ListTodo),
         }}
       />
-      <Tabs.Screen
-        name="rewards"
-        options={{
-          title:      'Rewards',
-          tabBarIcon: tabIcon(Gift),
-        }}
-      />
+      {gamificationEnabled && (
+        <Tabs.Screen
+          name="rewards"
+          options={{
+            title:      'Rewards',
+            tabBarIcon: tabIcon(Gift),
+          }}
+        />
+      )}
       <Tabs.Screen
         name="settings"
         options={{
