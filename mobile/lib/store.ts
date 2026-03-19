@@ -1,5 +1,5 @@
 // ── Chorify Zustand stores ────────────────────────────────────────────────────
-// auth  — tokens + decoded JWT claims
+// auth  — user identity (synced from Clerk via ClerkSync component)
 // household — household data, members, tasks, completions, rooms, categories
 
 import { create } from 'zustand'
@@ -7,27 +7,16 @@ import type {
   Completion,
   Household,
   HouseholdCategory,
-  LoginResponse,
   Member,
   Room,
   Task,
 } from '@/types'
 import * as SecureStore from 'expo-secure-store'
-import { auth as authApi, getStoredTokens, storeTokens, storeAccessToken, migrateSecureStoreKeys, households as householdsApi, rooms as roomsApi } from '@/lib/api'
+import { households as householdsApi, rooms as roomsApi } from '@/lib/api'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const GAMIFICATION_KEY = 'chorify.gamification_enabled'
-
-function decodeJwt(token: string): { sub: string; hid: string | null; mid: string | null } | null {
-  try {
-    const payload = token.split('.')[1]
-    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
-    return { sub: decoded.sub, hid: decoded.hid ?? null, mid: decoded.mid ?? null }
-  } catch {
-    return null
-  }
-}
 
 // ── Timezone-aware date helpers ───────────────────────────────────────────────
 
@@ -53,91 +42,37 @@ function todayISO(): string {
 }
 
 // ── Auth store ────────────────────────────────────────────────────────────────
+// With Clerk, this store is a thin bridge. The ClerkSync component in _layout.tsx
+// writes userId/householdId/memberId here from Clerk's hooks so non-hook code
+// (and existing components) can read them via useAuthStore.
 
 interface AuthState {
-  accessToken:  string | null
-  refreshToken: string | null
   userId:       string | null
   householdId:  string | null
   memberId:     string | null
   isHydrated:   boolean
 
-  hydrate:           () => Promise<void>
-  setTokens:         (tokens: LoginResponse) => void
-  /** Update only the access token after household create/join (no refresh token rotation). */
-  updateAccessToken: (accessToken: string) => Promise<void>
-  clearAuth:         () => void
-  logout:            () => Promise<void>
+  /** Called by ClerkSync to push Clerk state into Zustand */
+  setClerkState: (state: { userId: string | null; householdId: string | null; memberId: string | null }) => void
+  clearAuth:     () => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  accessToken:  null,
-  refreshToken: null,
   userId:       null,
   householdId:  null,
   memberId:     null,
   isHydrated:   false,
 
-  hydrate: async () => {
-    await migrateSecureStoreKeys()
-    const stored = await getStoredTokens()
-    if (stored) {
-      const claims = decodeJwt(stored.accessToken)
-      set({
-        accessToken:  stored.accessToken,
-        refreshToken: stored.refreshToken,
-        userId:       claims?.sub ?? null,
-        householdId:  claims?.hid ?? null,
-        memberId:     claims?.mid ?? null,
-        isHydrated:   true,
-      })
-    } else {
-      set({ isHydrated: true })
-    }
+  setClerkState: ({ userId, householdId, memberId }) => {
+    set({ userId, householdId, memberId, isHydrated: true })
   },
 
-  setTokens: (tokens: LoginResponse) => {
-    storeTokens(tokens)
-    const claims = decodeJwt(tokens.accessToken)
-    set({
-      accessToken:  tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      userId:       claims?.sub ?? null,
-      householdId:  claims?.hid ?? null,
-      memberId:     claims?.mid ?? null,
-    })
-  },
-
-  updateAccessToken: async (accessToken: string) => {
-    await storeAccessToken(accessToken)
-    const claims = decodeJwt(accessToken)
-    set({
-      accessToken,
-      householdId: claims?.hid ?? null,
-      memberId:    claims?.mid ?? null,
-    })
-  },
-
-  clearAuth: () =>
-    set({
-      accessToken:  null,
-      refreshToken: null,
-      userId:       null,
-      householdId:  null,
-      memberId:     null,
-    }),
-
-  logout: async () => {
-    try {
-      await authApi.logout()
-    } catch {}
+  clearAuth: () => {
     useHouseholdStore.getState().clear()
     set({
-      accessToken:  null,
-      refreshToken: null,
-      userId:       null,
-      householdId:  null,
-      memberId:     null,
+      userId:      null,
+      householdId: null,
+      memberId:    null,
     })
   },
 }))
@@ -172,7 +107,6 @@ interface HouseholdState {
   addCategory:        (category: HouseholdCategory) => void
   updateCategory:     (categoryId: string, patch: Partial<HouseholdCategory>) => void
   removeCategory:     (categoryId: string) => void
-  /** After a category rename, update the category name on all in-memory tasks */
   renameCategoryOnTasks: (oldName: string, newName: string) => void
   clear:              () => void
 }
@@ -194,7 +128,6 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
     set({ isLoadingSettings: true })
     try {
       const stored = await SecureStore.getItemAsync(GAMIFICATION_KEY)
-      // Defaults to false if not set
       set({ gamificationEnabled: stored === 'true' })
     } catch {
       set({ gamificationEnabled: false })
@@ -222,7 +155,6 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
         householdsApi.tasks(householdId),
         householdsApi.completions(householdId),
         householdsApi.rooms(householdId),
-        // Graceful fallback: categories table may not exist on older deployments
         householdsApi.categories(householdId).catch(() => ({ categories: [] as import('@/types').HouseholdCategory[] })),
       ])
       set({ household, members, tasks, completions, rooms, categories: categoriesResult.categories })
@@ -289,13 +221,11 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
 
 // ── Computed selectors ────────────────────────────────────────────────────────
 
-/** Tasks due today or overdue (next_due <= today) */
 export function selectTodaysTasks(tasks: Task[]): Task[] {
   const today = todayISO()
   return tasks.filter((t) => t.next_due != null && t.next_due <= today)
 }
 
-/** Tasks due in the next 7 days (exclusive of today) */
 export function selectUpcomingTasks(tasks: Task[]): Task[] {
   const today   = todayISO()
   const weekStr = getWeekFromNowString()
@@ -304,23 +234,16 @@ export function selectUpcomingTasks(tasks: Task[]): Task[] {
   )
 }
 
-/** Whether a task was completed today by any member */
 export function selectIsCompletedToday(taskId: string, completions: Completion[]): boolean {
   const today = todayISO()
   return completions.some((c) => c.task_id === taskId && c.completed_date === today)
 }
 
-/** Subtract n days from a YYYY-MM-DD string. Returns YYYY-MM-DD. */
 function dateMinus(dateStr: string, days: number): string {
   const [y, m, d] = dateStr.split('-').map(Number)
   return new Date(Date.UTC(y, m - 1, d - days)).toISOString().slice(0, 10)
 }
 
-/**
- * Consecutive-day streak for a member.
- * A streak is still live if the member hasn't completed anything today yet
- * (it counts back from yesterday in that case).
- */
 export function selectStreak(memberId: string, completions: Completion[]): number {
   const dates = [...new Set(
     completions
@@ -333,8 +256,6 @@ export function selectStreak(memberId: string, completions: Completion[]): numbe
   const today     = getTodayString()
   const yesterday = dateMinus(today, 1)
 
-  // Start counting from today if completed today, otherwise from yesterday.
-  // If the most recent completion is older than yesterday, streak is 0.
   const startDate = dates[0] === today ? today : yesterday
 
   let streak = 0

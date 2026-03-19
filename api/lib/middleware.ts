@@ -2,6 +2,9 @@
 import { createMiddleware } from 'hono/factory'
 import type { Context } from 'hono'
 import { verifyToken, type TokenPayload } from './auth'
+import { verifyToken as verifyClerkToken } from '@clerk/backend'
+import { getDb } from './db'
+import { clerkClient } from './clerk'
 
 // ── Rate limiting (in-memory sliding window) ────────────────────────────────
 // Resets on cold start, but still prevents brute-force within a single instance.
@@ -68,21 +71,91 @@ export function rateLimit(maxRequests: number, windowMs: number) {
 declare module 'hono' {
   interface ContextVariableMap {
     token: TokenPayload
+    clerkUserId: string | null
   }
 }
 
 /**
- * Validates the Bearer JWT in the Authorization header.
- * Sets c.var.token on success; returns 401 on failure.
+ * Dual-auth middleware: tries Clerk JWT first, falls back to legacy jose JWT.
+ * Sets c.var.token with the same { sub, hid, mid } shape regardless of source.
+ * Also sets c.var.clerkUserId when the token is from Clerk (for publicMetadata updates).
  */
 export const requireAuth = createMiddleware(async (c, next) => {
   const auth = c.req.header('Authorization')
   if (!auth?.startsWith('Bearer ')) {
     return c.json({ error: 'Missing authorization header' }, 401)
   }
+
+  const token = auth.slice(7)
+
+  // Try Clerk JWT first
+  const clerkSecretKey = process.env.CLERK_SECRET_KEY
+  if (clerkSecretKey) {
+    try {
+      const session = await verifyClerkToken(token, { secretKey: clerkSecretKey })
+      // ext_id is the Turso user_id, set via externalId on the Clerk user
+      const extId = (session as any).ext_id as string | undefined
+      const hid = (session as any).hid as string | null ?? null
+      const mid = (session as any).mid as string | null ?? null
+
+      if (extId) {
+        c.set('token', { sub: extId, hid, mid })
+        c.set('clerkUserId', session.sub)
+        return next()
+      }
+
+      // Valid Clerk JWT but no ext_id — new OAuth user or webhook hasn't fired yet.
+      // Look up by email in Turso and link accounts on the fly.
+      const clerkUser = await clerkClient.users.getUser(session.sub)
+      const email = clerkUser.emailAddresses?.[0]?.emailAddress
+      if (email) {
+        const db = getDb()
+        const row = await db.execute({
+          sql: `SELECT u.id, p.household_id, m.id as member_id
+                FROM users u
+                LEFT JOIN profiles p ON p.user_id = u.id
+                LEFT JOIN members m ON m.user_id = u.id AND m.household_id = p.household_id
+                WHERE u.email = ?`,
+          args: [email.toLowerCase()],
+        })
+
+        if (row.rows.length > 0) {
+          const userId = row.rows[0].id as string
+          const userHid = (row.rows[0].household_id as string | null) ?? null
+          const userMid = (row.rows[0].member_id as string | null) ?? null
+
+          // Link: set externalId + publicMetadata on Clerk, clerk_id on Turso
+          try {
+            await clerkClient.users.updateUser(session.sub, {
+              externalId: userId,
+              publicMetadata: {
+                householdId: userHid ?? undefined,
+                memberId: userMid ?? undefined,
+              },
+            })
+            await db.execute({
+              sql: 'UPDATE users SET clerk_id = ? WHERE id = ?',
+              args: [session.sub, userId],
+            })
+          } catch (e) {
+            console.error('[middleware] Failed to link Clerk user:', e)
+          }
+
+          c.set('token', { sub: userId, hid: userHid, mid: userMid })
+          c.set('clerkUserId', session.sub)
+          return next()
+        }
+      }
+    } catch {
+      // Not a valid Clerk token — try legacy
+    }
+  }
+
+  // Fall back to legacy JWT
   try {
-    const payload = await verifyToken(auth.slice(7))
+    const payload = await verifyToken(token)
     c.set('token', payload)
+    c.set('clerkUserId', null)
     await next()
   } catch {
     return c.json({ error: 'Invalid or expired token' }, 401)

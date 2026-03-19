@@ -17,6 +17,7 @@ import { getDb } from '../db'
 import { signToken } from '../auth'
 import { generateId, generateInviteCode, todayISO } from '../utils'
 import { requireAuth } from '../middleware'
+import { clerkClient } from '../clerk'
 
 const households = new Hono()
 
@@ -121,8 +122,20 @@ households.post('/', requireAuth, zValidator('json', CreateHouseholdSchema), asy
     ...categoryInserts,
   ])
 
-  // Issue a new token that now carries householdId + memberId
+  // Issue a new token that now carries householdId + memberId (legacy clients)
   const accessToken = await signToken({ sub: userId, hid: householdId, mid: memberId })
+
+  // Update Clerk publicMetadata so session tokens include hid/mid
+  const clerkUserId = c.get('clerkUserId')
+  if (clerkUserId) {
+    try {
+      await clerkClient.users.updateUser(clerkUserId, {
+        publicMetadata: { householdId, memberId },
+      })
+    } catch (e) {
+      console.error('[households] Failed to update Clerk metadata:', e)
+    }
+  }
 
   return c.json(
     {
@@ -179,6 +192,18 @@ households.post('/join', requireAuth, zValidator('json', JoinSchema), async (c) 
 
   const accessToken = await signToken({ sub: userId, hid: householdId, mid: memberId })
   const member = { id: memberId, household_id: householdId, user_id: userId, display_name: displayName, emoji, is_child: 0, points_total: 0 }
+
+  // Update Clerk publicMetadata so session tokens include hid/mid
+  const clerkUserId = c.get('clerkUserId')
+  if (clerkUserId) {
+    try {
+      await clerkClient.users.updateUser(clerkUserId, {
+        publicMetadata: { householdId, memberId },
+      })
+    } catch (e) {
+      console.error('[households] Failed to update Clerk metadata:', e)
+    }
+  }
 
   return c.json({ household, member, accessToken })
 })
@@ -409,6 +434,7 @@ const CreateTaskSchema = z.object({
   roomId:     z.string().nullable().optional(),
   notes:      z.string().max(500).optional(),
   isPrivate:  z.boolean().default(false),
+  nextDue:    z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 })
 
 households.post('/:id/tasks', requireAuth, zValidator('json', CreateTaskSchema), async (c) => {
@@ -422,7 +448,7 @@ households.post('/:id/tasks', requireAuth, zValidator('json', CreateTaskSchema),
   }
 
   const taskId = generateId()
-  const nextDue = todayISO()
+  const nextDue = body.nextDue ?? todayISO()
 
   await getDb().execute({
     sql: `INSERT INTO tasks (id, household_id, title, category, recurrence, assigned_to, room_id, next_due, notes, is_private, owner_member_id)

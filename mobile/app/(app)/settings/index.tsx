@@ -18,6 +18,7 @@ import * as ImageManipulator from 'expo-image-manipulator'
 import * as ImagePicker from 'expo-image-picker'
 import * as SecureStore from 'expo-secure-store'
 import { useRouter } from 'expo-router'
+import { useAuth } from '@clerk/clerk-expo'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { members as membersApi, households as householdsApi, auth as authApi } from '@/lib/api'
 import { useAuthStore, useHouseholdStore, setStoreTimezone, getTodayString } from '@/lib/store'
@@ -58,7 +59,8 @@ export default function SettingsScreen() {
 
   const memberId    = useAuthStore((s) => s.memberId)
   const householdId = useAuthStore((s) => s.householdId)
-  const logout      = useAuthStore((s) => s.logout)
+  const clearAuth   = useAuthStore((s) => s.clearAuth)
+  const { signOut } = useAuth()
   const household   = useHouseholdStore((s) => s.household)
   const members     = useHouseholdStore((s) => s.members)
   const tasks       = useHouseholdStore((s) => s.tasks)
@@ -231,7 +233,8 @@ export default function SettingsScreen() {
           onPress: async () => {
             setLoggingOut(true)
             try {
-              await logout()
+              clearAuth()
+              await signOut()
               router.replace('/(auth)/login')
             } finally {
               setLoggingOut(false)
@@ -255,7 +258,8 @@ export default function SettingsScreen() {
             setLoggingOut(true)
             try {
               await authApi.deleteMe()
-              await logout()
+              clearAuth()
+              await signOut()
               router.replace('/(auth)/login')
             } catch (e) {
               Alert.alert('Error', 'Could not delete account. Please try again.')

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,8 +11,8 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { auth as authApi } from '@/lib/api'
-import { useAuthStore } from '@/lib/store'
+import { useSignIn, useSSO } from '@clerk/clerk-expo'
+import * as WebBrowser from 'expo-web-browser'
 import { Button } from '@/components/Button'
 import { Input } from '@/components/Input'
 import { Toast } from '@/components/Toast'
@@ -20,39 +20,68 @@ import { Colors, Radius, Shadows } from '@/constants/colors'
 import { Font, FontSize } from '@/constants/fonts'
 import { useLayout } from '@/constants/layout'
 
+// Warm up the browser for OAuth redirects
+WebBrowser.maybeCompleteAuthSession()
+
 export default function LoginScreen() {
-  const router    = useRouter()
-  const setTokens = useAuthStore((s) => s.setTokens)
+  const router = useRouter()
+  const { signIn, setActive, isLoaded } = useSignIn()
+  const { startSSOFlow } = useSSO()
   const { isLandscape } = useLayout()
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [loading,  setLoading]  = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error,    setError]    = useState<string | null>(null)
 
   const passwordRef = useRef<TextInput>(null)
 
   async function handleLogin() {
+    if (!isLoaded || !signIn) return
     const trimmedEmail = email.trim().toLowerCase()
     if (!trimmedEmail || !password) return
 
     setLoading(true)
     setError(null)
     try {
-      const data = await authApi.login({ email: trimmedEmail, password })
-      setTokens(data)
-      router.replace('/')
-    } catch (e: unknown) {
-      const message =
-        e instanceof Error               ? e.message
-        : typeof e === 'string'          ? e
-        : typeof (e as any)?.error === 'string' ? (e as any).error
-        : 'Login failed. Check your email and password.'
+      const result = await signIn.create({
+        identifier: trimmedEmail,
+        password,
+      })
+
+      if (result.status === 'complete' && result.createdSessionId) {
+        await setActive({ session: result.createdSessionId })
+        router.replace('/')
+      }
+    } catch (e: any) {
+      const message = e?.errors?.[0]?.longMessage ?? e?.errors?.[0]?.message ?? 'Login failed. Check your email and password.'
       setError(message)
     } finally {
       setLoading(false)
     }
   }
+
+  const handleGoogleLogin = useCallback(async () => {
+    if (googleLoading) return
+    setGoogleLoading(true)
+    setError(null)
+    try {
+      const { createdSessionId, setActive: setActiveSession } = await startSSOFlow({
+        strategy: 'oauth_google',
+      })
+
+      if (createdSessionId && setActiveSession) {
+        await setActiveSession({ session: createdSessionId })
+        router.replace('/')
+      }
+    } catch (e: any) {
+      const message = e?.errors?.[0]?.longMessage ?? e?.errors?.[0]?.message ?? 'Google sign-in failed. Try again.'
+      setError(message)
+    } finally {
+      setGoogleLoading(false)
+    }
+  }, [googleLoading, startSSOFlow, router])
 
   const canSubmit = email.trim().length > 0 && password.length > 0
 
@@ -79,6 +108,24 @@ export default function LoginScreen() {
           {/* Form card */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Welcome back</Text>
+
+            {/* Google Sign-In */}
+            <TouchableOpacity
+              style={styles.googleBtn}
+              onPress={handleGoogleLogin}
+              disabled={googleLoading}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.googleBtnText}>
+                {googleLoading ? 'Signing in...' : 'Continue with Google'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
             <Input
               label="Email"
@@ -200,6 +247,40 @@ const styles = StyleSheet.create({
   },
   cta: {
     marginTop: 8,
+  },
+
+  // Google button
+  googleBtn: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleBtnText: {
+    fontFamily: Font.semiBold,
+    fontSize: FontSize.base,
+    color: Colors.textPrimary,
+  },
+
+  // Divider
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.borderSubtle,
+  },
+  dividerText: {
+    fontFamily: Font.regular,
+    fontSize: FontSize.sm,
+    color: Colors.textTertiary,
+    marginHorizontal: 16,
   },
 
   // Switch

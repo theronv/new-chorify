@@ -17,12 +17,11 @@ export function generateInviteCode(): string {
 }
 
 /**
- * Returns today's date as YYYY-MM-DD in UTC.
- * Using UTC consistently avoids the "one day off" bug that exists in the
- * original PWA's date math (which mixes local and UTC new Date() calls).
+ * Returns today's date as YYYY-MM-DD in the app timezone.
+ * Must match the mobile's getTodayString() so dates are consistent.
  */
-export function todayISO(): string {
-  return new Date().toISOString().split('T')[0]
+export function todayISO(tz = 'America/Los_Angeles'): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: tz })
 }
 
 /**

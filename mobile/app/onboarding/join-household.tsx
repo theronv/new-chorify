@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter, useLocalSearchParams } from 'expo-router'
+import { useSession } from '@clerk/clerk-expo'
 import { households as householdsApi } from '@/lib/api'
 import { useAuthStore, useHouseholdStore } from '@/lib/store'
 import { Button } from '@/components/Button'
@@ -25,8 +26,8 @@ const EMOJIS = ['😀','😎','🤗','😊','🙂','😄','🧑','👦','👧','
 
 export default function JoinHouseholdScreen() {
   const router         = useRouter()
-  const updateAccessToken = useAuthStore((s) => s.updateAccessToken)
-  const loadHousehold     = useHouseholdStore((s) => s.load)
+  const { session }    = useSession()
+  const loadHousehold  = useHouseholdStore((s) => s.load)
 
   const { isLandscape } = useLayout()
   const { n } = useLocalSearchParams<{ n?: string }>()
@@ -52,8 +53,8 @@ export default function JoinHouseholdScreen() {
         displayName: dName,
         emoji,
       })
-      // Server issues a new access token carrying hid + mid; refresh token is unchanged
-      await updateAccessToken(data.accessToken)
+      // Reload Clerk session to pick up updated publicMetadata (hid + mid)
+      await session?.reload()
       await loadHousehold(data.household.id)
       router.replace('/(app)/(home)')
     } catch (e: unknown) {

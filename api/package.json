@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@clerk/backend": "^3.2.1",
     "@hono/zod-validator": "^0.4.2",
     "@libsql/client": "^0.14.0",
     "hono": "^4.7.0",
@@ -16,11 +17,14 @@
     "next": "^15.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "svix": "^1.88.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^20.17.16",
     "@types/react": "^19.0.7",
+    "dotenv": "^17.3.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3"
   }
 }

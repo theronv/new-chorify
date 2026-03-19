@@ -1,6 +1,7 @@
 // ── Chorify API client ────────────────────────────────────────────────────────
-// Typed wrapper around the Hono/Vercel Edge API.
-// Handles Bearer auth header injection and silent access-token refresh.
+// Typed wrapper around the Hono/Vercel API.
+// With Clerk: Bearer token is injected via getToken() from @clerk/clerk-expo.
+// Legacy token storage kept for migration period only.
 
 import * as SecureStore from 'expo-secure-store'
 import type {
@@ -28,10 +29,6 @@ import type {
 } from '@/types'
 
 // ── Base URL ─────────────────────────────────────────────────────────────────
-// Set EXPO_PUBLIC_API_URL in mobile/.env.local for development.
-// iOS Simulator cannot reach the host machine via `localhost` — use the
-// machine's LAN IP instead (e.g. http://192.168.1.X:3000).
-// Run: ipconfig getifaddr en0   to find your IP.
 const BASE_URL = (() => {
   const url = process.env.EXPO_PUBLIC_API_URL
   if (__DEV__ && !url) {
@@ -45,19 +42,23 @@ const BASE_URL = (() => {
 })()
 if (__DEV__) console.log('[api] BASE_URL:', BASE_URL)
 
-// ── Secure storage keys ───────────────────────────────────────────────────────
+// ── Clerk token getter ───────────────────────────────────────────────────────
+// Set by ClerkSync component in _layout.tsx once Clerk is loaded.
+// This allows non-hook code (this module) to get the current Clerk session token.
+
+let _getToken: (() => Promise<string | null>) | null = null
+
+export function setTokenGetter(fn: () => Promise<string | null>): void {
+  _getToken = fn
+}
+
+// ── Legacy secure storage keys (kept for dual-auth migration) ────────────────
 const ACCESS_KEY  = 'chorify.access_token'
 const REFRESH_KEY = 'chorify.refresh_token'
 
-// Legacy keys (app was previously named "Keppt")
 const LEGACY_ACCESS_KEY  = 'keptt.access_token'
 const LEGACY_REFRESH_KEY = 'keptt.refresh_token'
 
-/**
- * One-time migration: copy tokens from legacy `keptt.*` keys to `chorify.*`
- * keys, then delete the old keys. Safe to call multiple times — no-ops if
- * legacy keys are already gone.
- */
 export async function migrateSecureStoreKeys(): Promise<void> {
   const [legacyAccess, legacyRefresh] = await Promise.all([
     SecureStore.getItemAsync(LEGACY_ACCESS_KEY),
@@ -65,7 +66,6 @@ export async function migrateSecureStoreKeys(): Promise<void> {
   ])
   if (!legacyAccess && !legacyRefresh) return
 
-  // Copy to new keys (only if new key is empty — don't overwrite a newer value)
   const [currentAccess, currentRefresh] = await Promise.all([
     SecureStore.getItemAsync(ACCESS_KEY),
     SecureStore.getItemAsync(REFRESH_KEY),
@@ -80,7 +80,6 @@ export async function migrateSecureStoreKeys(): Promise<void> {
   }
   await Promise.all(writes)
 
-  // Delete legacy keys
   await Promise.all([
     SecureStore.deleteItemAsync(LEGACY_ACCESS_KEY),
     SecureStore.deleteItemAsync(LEGACY_REFRESH_KEY),
@@ -88,8 +87,7 @@ export async function migrateSecureStoreKeys(): Promise<void> {
   if (__DEV__) console.log('[api] Migrated SecureStore keys from keptt.* to chorify.*')
 }
 
-// ── Token helpers ─────────────────────────────────────────────────────────────
-
+// Legacy token helpers (kept for background fetch and migration period)
 export async function getStoredTokens(): Promise<AuthTokens | null> {
   const [accessToken, refreshToken] = await Promise.all([
     SecureStore.getItemAsync(ACCESS_KEY),
@@ -100,23 +98,13 @@ export async function getStoredTokens(): Promise<AuthTokens | null> {
 }
 
 export async function storeTokens(tokens: AuthTokens): Promise<void> {
-  if (typeof tokens.accessToken !== 'string') throw new Error(
-    'accessToken must be a string, got: ' + typeof tokens.accessToken,
-  )
-  if (typeof tokens.refreshToken !== 'string') throw new Error(
-    'refreshToken must be a string, got: ' + typeof tokens.refreshToken,
-  )
   await Promise.all([
-    SecureStore.setItemAsync(ACCESS_KEY,  tokens.accessToken),
+    SecureStore.setItemAsync(ACCESS_KEY, tokens.accessToken),
     SecureStore.setItemAsync(REFRESH_KEY, tokens.refreshToken),
   ])
 }
 
-/** Update only the access token (e.g. after household create/join which doesn't rotate the refresh token). */
 export async function storeAccessToken(accessToken: string): Promise<void> {
-  if (typeof accessToken !== 'string') throw new Error(
-    'accessToken must be a string, got: ' + typeof accessToken,
-  )
   await SecureStore.setItemAsync(ACCESS_KEY, accessToken)
 }
 
@@ -129,75 +117,44 @@ export async function clearTokens(): Promise<void> {
 
 // ── Core fetch wrapper ────────────────────────────────────────────────────────
 
-let _refreshPromise: Promise<string | null> | null = null
-
-async function refreshAccessToken(): Promise<string | null> {
-  const stored = await getStoredTokens()
-  if (!stored) return null
-
-  const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken: stored.refreshToken }),
-  })
-  if (!res.ok) {
-    await clearTokens()
-    return null
-  }
-  const data: LoginResponse = await res.json()
-  await storeTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken })
-  return data.accessToken
-}
-
 async function request<T>(
   path: string,
   options: RequestInit = {},
-  retry = true,
 ): Promise<T> {
-  const stored = await getStoredTokens()
+  // Get token from Clerk (primary) or fall back to legacy stored tokens
+  let token: string | null = null
+  if (_getToken) {
+    token = await _getToken()
+  }
+  if (!token) {
+    const stored = await getStoredTokens()
+    token = stored?.accessToken ?? null
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> | undefined),
   }
-  if (stored?.accessToken) {
-    headers['Authorization'] = `Bearer ${stored.accessToken}`
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
   }
 
   const url = `${BASE_URL}${path}`
-  if (__DEV__) console.log('API request:', options.method ?? 'GET', url, options.body ?? '')
+  if (__DEV__) console.log('API request:', options.method ?? 'GET', url)
   const res = await fetch(url, { ...options, headers })
-  if (__DEV__) {
-    console.log('API response status:', res.status)
-    console.log('API response body:', await res.clone().text())
-  }
-
-  // Silent refresh on 401
-  if (res.status === 401 && retry) {
-    if (!_refreshPromise) {
-      _refreshPromise = refreshAccessToken().finally(() => {
-        _refreshPromise = null
-      })
-    }
-    // Capture into a local so .finally() resetting the module var doesn't affect us
-    const pending   = _refreshPromise
-    const newToken  = await pending
-    if (newToken) {
-      return request<T>(path, options, false)
-    }
-    throw { error: 'Session expired', status: 401 }
-  }
+  if (__DEV__) console.log('API response status:', res.status)
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
     throw { ...body, status: res.status }
   }
 
-  // 204 No Content
   if (res.status === 204) return undefined as unknown as T
   return res.json() as Promise<T>
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+// Legacy auth methods kept for dual-auth migration period.
 
 export const auth = {
   async signup(body: SignupRequest): Promise<SignupResponse> {
