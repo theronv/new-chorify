@@ -24,16 +24,13 @@ import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
 import { members as membersApi, households as householdsApi, auth as authApi } from '@/lib/api'
 import { tasksToCSV } from '@/lib/csv'
-import { useAuthStore, useHouseholdStore, setStoreTimezone, getTodayString } from '@/lib/store'
+import { useAuthStore, useHouseholdStore, setStoreTimezone } from '@/lib/store'
 import { getTimezone, saveTimezone, TIMEZONES, DEFAULT_TIMEZONE } from '@/lib/timezone'
 import {
-  getNotifPref,
-  saveNotifPref,
-  scheduleDailySummary,
-  cancelDailySummary,
+  getNotifEnabled,
+  saveNotifEnabled,
   registerForPushNotificationsAsync,
   PUSH_TOKEN_CACHE_KEY,
-  type NotificationPref,
 } from '@/lib/notifications'
 import { Button } from '@/components/Button'
 import { Input } from '@/components/Input'
@@ -49,11 +46,6 @@ const PERSON_EMOJIS = [
   '🦸', '🧙', '⭐', '🐾',
 ]
 
-const NOTIF_OPTIONS: { value: NotificationPref; label: string; desc: string }[] = [
-  { value: 'task',  label: 'When tasks are due', desc: 'Push notification for each task'        },
-  { value: 'daily', label: 'Daily summary',       desc: 'One notification with task count at 8am' },
-  { value: 'none',  label: 'Off',                 desc: 'No notifications'                        },
-]
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets()
@@ -67,7 +59,6 @@ export default function SettingsScreen() {
   const household   = useHouseholdStore((s) => s.household)
   const members     = useHouseholdStore((s) => s.members)
   const tasks       = useHouseholdStore((s) => s.tasks)
-  const completions = useHouseholdStore((s) => s.completions)
   const rooms       = useHouseholdStore((s) => s.rooms)
   const gamificationEnabled = useHouseholdStore((s) => s.gamificationEnabled)
   const setGamificationEnabled = useHouseholdStore((s) => s.setGamificationEnabled)
@@ -80,7 +71,7 @@ export default function SettingsScreen() {
   const [loggingOut,       setLoggingOut]       = useState(false)
   const [uploadingPhoto,   setUploadingPhoto]   = useState(false)
   const [clearingTasks,    setClearingTasks]    = useState(false)
-  const [notifPref,        setNotifPref]        = useState<NotificationPref>('task')
+  const [notifEnabled,     setNotifEnabled]     = useState(true)
   const [timezone,         setTimezone]         = useState<string>(DEFAULT_TIMEZONE)
   const [tzPickerOpen,     setTzPickerOpen]     = useState(false)
 
@@ -92,16 +83,9 @@ export default function SettingsScreen() {
   const [memberError,        setMemberError]        = useState<string | null>(null)
 
   useEffect(() => {
-    getNotifPref().then(setNotifPref)
+    getNotifEnabled().then(setNotifEnabled)
     getTimezone().then(setTimezone)
   }, [])
-
-  // Count of tasks due or overdue today (not yet completed) — used when scheduling daily summary
-  const today    = getTodayString()
-  const dueCount = tasks.filter((t) => {
-    if (!t.next_due || t.next_due > today) return false
-    return !completions.some((c) => c.task_id === t.id && c.completed_date === today)
-  }).length
 
   async function handleShare() {
     if (!household?.invite_code) return
@@ -149,13 +133,12 @@ export default function SettingsScreen() {
     }
   }
 
-  async function handleNotifPref(pref: NotificationPref) {
-    if (pref === notifPref) return
-    setNotifPref(pref)
-    await saveNotifPref(pref)
+  async function handleToggleNotif() {
+    const next = !notifEnabled
+    setNotifEnabled(next)
+    await saveNotifEnabled(next)
 
-    if (pref === 'task') {
-      await cancelDailySummary()
+    if (next) {
       const token = await registerForPushNotificationsAsync()
       if (token && memberId) {
         try {
@@ -168,7 +151,6 @@ export default function SettingsScreen() {
         } catch {}
       }
     } else {
-      // Clear push token from server so it stops receiving push notifications
       try {
         const cached = await SecureStore.getItemAsync(PUSH_TOKEN_CACHE_KEY)
         if (cached && memberId) {
@@ -177,12 +159,6 @@ export default function SettingsScreen() {
           updateMember(memberId, { push_token: null })
         }
       } catch {}
-
-      if (pref === 'daily') {
-        await scheduleDailySummary(dueCount)
-      } else {
-        await cancelDailySummary()
-      }
     }
   }
 
@@ -540,24 +516,19 @@ export default function SettingsScreen() {
         {/* ── Notifications ──────────────────────────────────────────── */}
         <Text style={styles.sectionLabel}>Notifications</Text>
         <View style={styles.section}>
-          {NOTIF_OPTIONS.map((opt, idx) => (
-            <View key={opt.value}>
-              {idx > 0 && <View style={styles.divider} />}
-              <TouchableOpacity
-                style={styles.notifRow}
-                onPress={() => handleNotifPref(opt.value)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.notifInfo}>
-                  <Text style={styles.notifLabel}>{opt.label}</Text>
-                  <Text style={styles.notifDesc}>{opt.desc}</Text>
-                </View>
-                {notifPref === opt.value && (
-                  <Text style={styles.notifCheck}>✓</Text>
-                )}
-              </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.notifRow}
+            onPress={handleToggleNotif}
+            activeOpacity={0.7}
+          >
+            <View style={styles.notifInfo}>
+              <Text style={styles.notifLabel}>Push Notifications</Text>
+              <Text style={styles.notifDesc}>Daily reminder of tasks due</Text>
             </View>
-          ))}
+            <View style={[styles.toggle, notifEnabled && styles.toggleActive]}>
+              <View style={[styles.toggleKnob, notifEnabled && styles.toggleKnobActive]} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* ── Features ───────────────────────────────────────────────── */}
@@ -1095,14 +1066,6 @@ const styles = StyleSheet.create({
     fontSize:   FontSize.sm,
     color:      Colors.textSecondary,
   },
-  notifCheck: {
-    fontFamily: Font.bold,
-    fontSize:   FontSize.base,
-    color:      Colors.primary,
-    width:      20,
-    textAlign:  'right',
-  },
-
   // Toggle
   toggle: {
     width:           44,

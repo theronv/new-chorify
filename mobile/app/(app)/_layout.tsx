@@ -9,11 +9,9 @@ import { getTimezone } from '@/lib/timezone'
 import { initializePurchases } from '@/lib/purchases'
 import {
   IS_EXPO_GO,
-  getNotifPref,
+  getNotifEnabled,
   registerForPushNotificationsAsync,
   registerBackgroundFetch,
-  scheduleDailySummary,
-  cancelDailySummary,
   PUSH_TOKEN_CACHE_KEY,
 } from '@/lib/notifications'
 import { Colors, Shadows } from '@/constants/colors'
@@ -46,11 +44,17 @@ export default function AppLayout() {
   const tasks       = useHouseholdStore((s) => s.tasks)
   const completions = useHouseholdStore((s) => s.completions)
   useEffect(() => {
-    if (!IS_EXPO_GO) {
-      const dueTasks  = selectTodaysTasks(tasks)
-      const dueCount  = dueTasks.filter((t) => !selectIsCompletedToday(t.id, completions)).length
+    if (IS_EXPO_GO) return
+    ;(async () => {
+      const enabled = await getNotifEnabled()
+      if (!enabled) {
+        Notifications.setBadgeCountAsync(0).catch(() => {})
+        return
+      }
+      const dueTasks = selectTodaysTasks(tasks)
+      const dueCount = dueTasks.filter((t) => !selectIsCompletedToday(t.id, completions)).length
       Notifications.setBadgeCountAsync(dueCount).catch(() => {})
-    }
+    })()
   }, [tasks, completions])
 
   // Load household data on mount
@@ -63,9 +67,9 @@ export default function AppLayout() {
     if (!memberId) return
 
     async function setup() {
-      const pref = await getNotifPref()
+      const enabled = await getNotifEnabled()
 
-      if (pref === 'task') {
+      if (enabled) {
         const token = await registerForPushNotificationsAsync()
         if (token && memberId) {
           const cached = await SecureStore.getItemAsync(PUSH_TOKEN_CACHE_KEY)
@@ -92,11 +96,7 @@ export default function AppLayout() {
             updateMember(memberId, { push_token: null })
           } catch {}
         }
-        if (pref === 'daily') {
-          await scheduleDailySummary(0) // background fetch will update the count
-        } else {
-          await cancelDailySummary()
-        }
+        Notifications.setBadgeCountAsync(0).catch(() => {})
       }
 
       await registerBackgroundFetch()

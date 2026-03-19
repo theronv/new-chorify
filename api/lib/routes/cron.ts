@@ -70,7 +70,7 @@ cron.get('/notifications', requireCron, async (c) => {
     const batch = rows.slice(i, i + 100)
     const messages = batch.map(r => ({
       to:    r.pushToken,
-      title: 'Chorify',
+      title: 'Keptt',
       body:
         r.dueCount === 1
           ? 'You have a chore due today'
