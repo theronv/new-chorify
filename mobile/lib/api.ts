@@ -221,6 +221,10 @@ export const households = {
     return request(`/api/households/${id}/tasks`, { method: 'POST', body: JSON.stringify(body) })
   },
 
+  deleteAllTasks(id: string): Promise<void> {
+    return request(`/api/households/${id}/tasks`, { method: 'DELETE' })
+  },
+
   completions(id: string): Promise<{ completions: Completion[] }> {
     return request(`/api/households/${id}/completions`)
   },

@@ -20,7 +20,10 @@ import * as SecureStore from 'expo-secure-store'
 import { useRouter } from 'expo-router'
 import { useAuth } from '@clerk/clerk-expo'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import * as FileSystem from 'expo-file-system/legacy'
+import * as Sharing from 'expo-sharing'
 import { members as membersApi, households as householdsApi, auth as authApi } from '@/lib/api'
+import { tasksToCSV } from '@/lib/csv'
 import { useAuthStore, useHouseholdStore, setStoreTimezone, getTodayString } from '@/lib/store'
 import { getTimezone, saveTimezone, TIMEZONES, DEFAULT_TIMEZONE } from '@/lib/timezone'
 import {
@@ -65,8 +68,10 @@ export default function SettingsScreen() {
   const members     = useHouseholdStore((s) => s.members)
   const tasks       = useHouseholdStore((s) => s.tasks)
   const completions = useHouseholdStore((s) => s.completions)
+  const rooms       = useHouseholdStore((s) => s.rooms)
   const gamificationEnabled = useHouseholdStore((s) => s.gamificationEnabled)
   const setGamificationEnabled = useHouseholdStore((s) => s.setGamificationEnabled)
+  const clearTasks  = useHouseholdStore((s) => s.clearTasks)
 
   const me           = members.find((m) => m.id === memberId)
   const updateMember = useHouseholdStore((s) => s.updateMember)
@@ -74,6 +79,7 @@ export default function SettingsScreen() {
 
   const [loggingOut,       setLoggingOut]       = useState(false)
   const [uploadingPhoto,   setUploadingPhoto]   = useState(false)
+  const [clearingTasks,    setClearingTasks]    = useState(false)
   const [notifPref,        setNotifPref]        = useState<NotificationPref>('task')
   const [timezone,         setTimezone]         = useState<string>(DEFAULT_TIMEZONE)
   const [tzPickerOpen,     setTzPickerOpen]     = useState(false)
@@ -272,6 +278,83 @@ export default function SettingsScreen() {
     )
   }
 
+  async function exportTasksBackup() {
+    const csv      = tasksToCSV(tasks, rooms, members)
+    const today    = new Date().toISOString().slice(0, 10)
+    const filename = `chorify-tasks-backup-${today}.csv`
+    const fileUri  = `${FileSystem.cacheDirectory}${filename}`
+
+    await FileSystem.writeAsStringAsync(fileUri, csv, {
+      encoding: FileSystem.EncodingType.UTF8,
+    })
+
+    const canShare = await Sharing.isAvailableAsync()
+    if (canShare) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType:    'text/csv',
+        dialogTitle: 'Back Up Tasks',
+        UTI:         'public.comma-separated-values-text',
+      })
+    }
+  }
+
+  async function performClearAllTasks() {
+    if (!householdId) return
+    setClearingTasks(true)
+    try {
+      await householdsApi.deleteAllTasks(householdId)
+      clearTasks()
+    } catch {
+      Alert.alert('Error', 'Could not clear tasks. Please try again.')
+    } finally {
+      setClearingTasks(false)
+    }
+  }
+
+  function showFinalClearWarning() {
+    Alert.alert(
+      'Delete all tasks?',
+      'This will permanently delete all tasks and completion history. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete All Tasks',
+          style: 'destructive',
+          onPress: performClearAllTasks,
+        },
+      ],
+    )
+  }
+
+  function confirmClearAllTasks() {
+    if (!tasks.length) {
+      Alert.alert('No tasks', 'There are no tasks to clear.')
+      return
+    }
+
+    Alert.alert(
+      'Back up tasks first?',
+      'Would you like to export a backup of your tasks before deleting them?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Back Up First',
+          onPress: async () => {
+            try {
+              await exportTasksBackup()
+            } catch {}
+            showFinalClearWarning()
+          },
+        },
+        {
+          text: 'Skip Backup',
+          style: 'destructive',
+          onPress: showFinalClearWarning,
+        },
+      ],
+    )
+  }
+
   return (
     <View style={styles.root}>
       {/* Header */}
@@ -437,6 +520,19 @@ export default function SettingsScreen() {
           >
             <Text style={styles.navRowText}>Import / Export Tasks</Text>
             <Text style={styles.navRowChevron}>›</Text>
+          </TouchableOpacity>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.signOutRow}
+            onPress={confirmClearAllTasks}
+            disabled={clearingTasks}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.deleteText}>
+              {clearingTasks ? 'Clearing…' : 'Clear All Tasks'}
+            </Text>
           </TouchableOpacity>
 
         </View>

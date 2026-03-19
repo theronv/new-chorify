@@ -8,6 +8,7 @@
 //   GET    /:id/tasks    — list tasks
 //   POST   /:id/tasks    — create task
 //   GET    /:id/completions — list completions (last 30 days)
+//   DELETE /:id/tasks    — delete all tasks + completions
 //   GET    /:id/rewards  — list rewards
 //   POST   /:id/rewards  — create reward
 import { Hono } from 'hono'
@@ -497,6 +498,25 @@ households.get('/:id/completions', requireAuth, async (c) => {
     args: [householdId, sinceStr],
   })
   return c.json({ completions: result.rows })
+})
+
+// ── DELETE /api/households/:id/tasks ─────────────────────────────────────────
+
+households.delete('/:id/tasks', requireAuth, async (c) => {
+  const householdId = c.req.param('id')
+  const { sub: userId } = c.get('token')
+
+  if (!(await getMemberId(userId, householdId))) {
+    return c.json({ error: 'Not a member of this household' }, 403)
+  }
+
+  const db = getDb()
+  await db.batch([
+    { sql: 'DELETE FROM completions WHERE household_id = ?', args: [householdId] },
+    { sql: 'DELETE FROM tasks WHERE household_id = ?', args: [householdId] },
+  ])
+
+  return c.body(null, 204)
 })
 
 // ── GET /api/households/:id/rewards ──────────────────────────────────────────

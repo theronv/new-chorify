@@ -105,12 +105,7 @@ export default function HomeScreen() {
         <View style={styles.headerTop}>
           <View style={styles.titleRow}>
             <Image source={require('../../../assets/AppIcon.png')} style={styles.logo} />
-            <View>
-              <Text style={styles.screenTitle}>Today</Text>
-              <Text style={styles.dateLabel}>
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </Text>
-            </View>
+            <Text style={styles.screenTitle}>Today</Text>
           </View>
           <TouchableOpacity
             style={styles.addBtn}
@@ -519,12 +514,6 @@ const styles = StyleSheet.create({
     fontFamily: Font.displayBold,
     fontSize:   FontSize['3xl'],
     color:      Colors.textPrimary,
-  },
-  dateLabel: {
-    fontFamily: Font.regular,
-    fontSize:   FontSize.sm,
-    color:      Colors.textSecondary,
-    marginTop:  2,
   },
 
   // Filter row

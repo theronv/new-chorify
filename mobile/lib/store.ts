@@ -99,6 +99,7 @@ interface HouseholdState {
   updateTask:         (taskId: string, patch: Partial<Task>) => void
   addTask:            (task: Task) => void
   removeTask:         (taskId: string) => void
+  clearTasks:         () => void
   addMember:          (member: Member) => void
   updateMember:       (memberId: string, patch: Partial<Member>) => void
   addRoom:            (room: Room) => void
@@ -179,6 +180,9 @@ export const useHouseholdStore = create<HouseholdState>((set) => ({
 
   removeTask: (taskId) =>
     set((s) => ({ tasks: s.tasks.filter((t) => t.id !== taskId) })),
+
+  clearTasks: () =>
+    set({ tasks: [], completions: [] }),
 
   addMember: (member) =>
     set((s) => ({ members: [...s.members, member] })),
