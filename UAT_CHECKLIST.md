@@ -28,9 +28,9 @@ Work through Blockers first, then High, Medium, Low. Check off items as they are
   - `mobile/app/(app)/settings/index.tsx` — UI button + handler
 
 ### 1.2 Branding Inconsistency (Chorify vs Keptt)
-- [ ] **Fixed**
+- [x] **Fixed**
 - **Issue:** MEMORY.md documents a rebrand from Chorify to Keptt, but the live app still says "Chorify" in all user-facing strings. The privacy policy and APPSTORE.md say "Keptt."
-- **Decision needed:** Pick one name and apply everywhere.
+- **Resolution:** App name is "Chorify". All "Keptt" references have been updated to "Chorify".
 - **Affected locations:**
   - `mobile/app.json:3` — `"name": "Chorify"` (also slug, scheme, bundleIdentifier, NSUserNotificationUsageDescription)
   - `mobile/app/(auth)/login.tsx:73` — login screen wordmark
@@ -106,7 +106,7 @@ Work through Blockers first, then High, Medium, Low. Check off items as they are
 
 ### 2.6 Seed Demo Account for App Review
 - [ ] **Fixed**
-- **Issue:** APPSTORE.md lists demo credentials (`demo@keptt.app` / `KepttDemo2024`) for App Review. The account must exist with sample data.
+- **Issue:** APPSTORE.md lists demo credentials for App Review. The account must exist with sample data.
 - **Step:** Run `./scripts/seed-demo.sh` and verify the household has tasks, completions, and members.
 
 ---
@@ -147,8 +147,8 @@ Work through Blockers first, then High, Medium, Low. Check off items as they are
 - **Fix:** Add the same error state pattern from the Today screen.
 
 ### 3.6 APPSTORE.md Metadata Consistency
-- [ ] **Fixed**
-- **Issue:** Document mixes "Chorify" and "Keptt." Must match the final branding decision from item 1.2.
+- [x] **Fixed**
+- **Issue:** Document previously mixed "Chorify" and "Keptt." Now resolved — all branding is "Chorify".
 - **File:** `mobile/APPSTORE.md`
 
 ---

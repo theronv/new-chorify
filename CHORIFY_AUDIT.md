@@ -46,7 +46,7 @@ Review of items that will trigger immediate rejection:
 2.  **Privacy Manifest (`PrivacyInfo.xcprivacy`):** 🔴 **REQUIRED.** SDK 54+ apps must include this manifest declaring usage of "Required Reason" APIs (UserDefaults, File Metadata, etc.).
 3.  **Missing `NSPhotoLibraryUsageDescription`:** 🔴 **REQUIRED.** The app allows picking photos for avatars but lacks the usage description in `app.json`.
 4.  **Rewards Screen Reference:** 🟡 **UI GAP.** Referenced in App Store metadata/docs but the screen is missing in the app.
-5.  **Branding Inconsistency:** 🟢 **MINOR.** Some background tasks still use the legacy "Keppt" name (`keptt-background-fetch`).
+5.  **Branding Inconsistency:** 🟢 **RESOLVED.** Background task names use `chorify-background-fetch`.
 
 ---
 
@@ -99,7 +99,7 @@ Suggested Freemium Model:
 2.  **Leaderboard Memoization:** Cache weekly counts to prevent render lag.
 3.  **FlashList Migration:** Replace `ScrollView` in Today/Tasks with `FlashList`.
 4.  **Shared Hooks:** Extract `handleComplete` and `handleDelete` to a shared hook.
-5.  **Branding Cleanup:** Rename `keptt-background-fetch` to `chorify-bg-fetch`.
+5.  **Branding Cleanup:** 🟢 **RESOLVED.** All branding is "Chorify".
 
 ### 🟢 POST-LAUNCH (Nice to have)
 1.  **Drizzle ORM:** Migrate the API to use Drizzle for better type safety.

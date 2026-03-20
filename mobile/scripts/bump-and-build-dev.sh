@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ── Keptt Development Build Script ───────────────────────────────────────────
+# ── Chorify Development Build Script ─────────────────────────────────────────
 # Increments ios.buildNumber in app.json, then starts an EAS development build.
 # No App Store submission — build is distributed internally via EAS.
 #
@@ -24,7 +24,7 @@ print(d['expo']['ios']['buildNumber'])
 
 NEXT=$((CURRENT + 1))
 
-echo "=== Keptt Development Build ==="
+echo "=== Chorify Development Build ==="
 echo "Build number: $CURRENT → $NEXT"
 echo ""
 

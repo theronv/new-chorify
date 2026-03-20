@@ -78,7 +78,7 @@ Both screens render task lists with `ScrollView` + `.map()`. As households accum
 ### 4. Bug: Bundle ID Mismatch
 **File:** `mobile/app.json`
 
-Bundle identifier is still `com.chorify.app` but the rebrand to Keptt requires `com.keptt.app`. This mismatch will cause signing issues and App Store confusion if both IDs exist.
+Bundle identifier is `com.chorify.app`, matching the app name "Chorify".
 
 ### 5. Timezone Consistency
 **Files:** `mobile/components/AddTaskSheet.tsx` (BUG-3), `mobile/lib/store.ts` (BUG-4), `mobile/app/(app)/family/index.tsx` (BUG-8)

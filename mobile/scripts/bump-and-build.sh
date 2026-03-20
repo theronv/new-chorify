@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ── Keptt Production Build Script ────────────────────────────────────────────
+# ── Chorify Production Build Script ──────────────────────────────────────────
 # Increments ios.buildNumber in app.json, then builds and submits to the App Store.
 #
 # Usage:
@@ -24,7 +24,7 @@ print(d['expo']['ios']['buildNumber'])
 
 NEXT=$((CURRENT + 1))
 
-echo "=== Keptt Production Build ==="
+echo "=== Chorify Production Build ==="
 echo "Build number: $CURRENT → $NEXT"
 echo ""
 

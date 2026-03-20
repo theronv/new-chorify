@@ -32,6 +32,11 @@ api/      — Hono on Vercel Edge
 
 ## Critical Rules
 
+### Branding
+- The app name is **Chorify**. Always use "Chorify" in all user-facing strings, notifications, comments, scripts, and documentation.
+- Never use "Keptt" — that was a temporary name that has been fully reverted.
+- The only place `keptt` appears in code is in legacy SecureStore key constants (`keptt.access_token`, `keptt.refresh_token`) used for backward-compatible migration. Do not add new references.
+
 ### API (`api/`)
 - Must use `@libsql/client/web` — HTTP transport only, no WebSocket, no native modules
 - No `node:crypto`, `fs`, `path`, etc. — use Web Crypto API (`jose` for JWT, PBKDF2 for passwords)
@@ -42,7 +47,7 @@ api/      — Hono on Vercel Edge
 - Never call API directly from components — use typed wrappers in `lib/api.ts`
 - Never hardcode category strings — always read from `useHouseholdStore(s => s.categories)`
 - Use `expo-file-system/legacy` (not `expo-file-system`) for `writeAsStringAsync` / `EncodingType` in SDK 54
-- SecureStore keys are `chorify.access_token` and `chorify.refresh_token` — migrated from legacy `keptt.*` keys via `migrateSecureStoreKeys()` in `hydrate()`
+- SecureStore keys: `chorify.access_token` and `chorify.refresh_token` (legacy `keptt.*` keys auto-migrated on first launch)
 
 ---
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generate app icon and splash screen assets for Keptt
+// Generate app icon and splash screen assets for Chorify
 // Run: node scripts/generate-assets.js
 
 const sharp = require('sharp')
@@ -45,7 +45,7 @@ const iconSvg = `
 `.trim()
 
 // ── Splash SVG ────────────────────────────────────────────────────────────────
-// Light background (#F0F4FF), centered mini house + "Keptt" wordmark
+// Light background (#F0F4FF), centered mini house + "Chorify" wordmark
 const splashSvg = `
 <svg width="1284" height="2778" viewBox="0 0 1284 2778" xmlns="http://www.w3.org/2000/svg">
   <!-- Background -->
@@ -67,7 +67,7 @@ const splashSvg = `
     <circle cx="570" cy="755" r="10" fill="white" opacity="0.8"/>
   </g>
 
-  <!-- Wordmark: "Keptt" -->
+  <!-- Wordmark: "Chorify" -->
   <text
     x="642"
     y="1560"
@@ -77,7 +77,7 @@ const splashSvg = `
     fill="#1E1B4B"
     text-anchor="middle"
     letter-spacing="-2"
-  >Keptt</text>
+  >Chorify</text>
 
   <!-- Tagline -->
   <text

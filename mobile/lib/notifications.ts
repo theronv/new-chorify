@@ -1,4 +1,4 @@
-// ── Keptt push notifications + background fetch ──────────────────────────────
+// ── Chorify push notifications + background fetch ─────────────────────────────
 // This module is always imported (Metro bundles statically), but all side
 // effects and native calls are guarded by IS_EXPO_GO so the app runs cleanly
 // in Expo Go. Push notifications require an EAS development build.
