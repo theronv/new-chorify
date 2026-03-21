@@ -148,3 +148,6 @@ CREATE INDEX IF NOT EXISTS idx_members_user         ON members(user_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_user        ON profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_hash         ON refresh_tokens(token_hash);
 CREATE INDEX IF NOT EXISTS idx_refresh_user         ON refresh_tokens(user_id);
+
+-- Migration: add last_notified_date to members for cron idempotency
+ALTER TABLE members ADD COLUMN last_notified_date TEXT;  -- YYYY-MM-DD

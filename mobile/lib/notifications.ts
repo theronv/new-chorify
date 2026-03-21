@@ -59,7 +59,7 @@ if (!IS_EXPO_GO) {
 // defineTask must be called at module level on every JS startup.
 // Guard with IS_EXPO_GO so Expo Go never tries to register the task.
 
-function decodeJwtClaims(token: string): { hid?: string | null } | null {
+function decodeJwtClaims(token: string): { hid?: string | null; mid?: string | null } | null {
   try {
     const raw = token.split('.')[1]
     return JSON.parse(atob(raw.replace(/-/g, '+').replace(/_/g, '/')))
@@ -85,6 +85,8 @@ if (!IS_EXPO_GO) {
       const householdId = claims?.hid
       if (!householdId) return BackgroundFetch.BackgroundFetchResult.NoData
 
+      const memberId = claims?.mid ?? null
+
       const [{ tasks }, { completions }, tz] = await Promise.all([
         householdsApi.tasks(householdId),
         householdsApi.completions(householdId),
@@ -94,6 +96,8 @@ if (!IS_EXPO_GO) {
       const today    = new Date().toLocaleDateString('en-CA', { timeZone: tz })
       const dueCount = tasks.filter((t) => {
         if (!t.next_due || t.next_due > today) return false
+        // Only count tasks assigned to this member or unassigned
+        if (memberId && t.assigned_to !== null && t.assigned_to !== memberId) return false
         return !completions.some(
           (c) => c.task_id === t.id && c.completed_date === today,
         )
@@ -107,6 +111,44 @@ if (!IS_EXPO_GO) {
       return BackgroundFetch.BackgroundFetchResult.Failed
     }
   })
+}
+
+// ── Centralized badge update ─────────────────────────────────────────────────
+
+/**
+ * Updates the app icon badge count to reflect the number of tasks due today or
+ * overdue that are assigned to the given member (or unassigned).
+ * Excludes tasks already completed today by any member.
+ *
+ * Call this whenever tasks/completions change, or on foreground resume.
+ */
+export async function updateAppBadgeCount(
+  tasks: import('@/types').Task[],
+  completions: import('@/types').Completion[],
+  memberId: string | null,
+): Promise<void> {
+  if (IS_EXPO_GO) return
+
+  const enabled = await getNotifEnabled()
+  if (!enabled) {
+    Notifications.setBadgeCountAsync(0).catch(() => {})
+    return
+  }
+
+  const tz = await getTimezone()
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: tz })
+
+  const dueCount = tasks.filter((t: import('@/types').Task) => {
+    if (!t.next_due || t.next_due > today) return false
+    // Only count tasks assigned to this member or unassigned
+    if (memberId && t.assigned_to !== null && t.assigned_to !== memberId) return false
+    // Exclude tasks completed today
+    return !completions.some(
+      (c: import('@/types').Completion) => c.task_id === t.id && c.completed_date === today,
+    )
+  }).length
+
+  Notifications.setBadgeCountAsync(dueCount).catch(() => {})
 }
 
 // ── Push token registration ───────────────────────────────────────────────────

@@ -25,6 +25,7 @@ cron.get('/notifications', requireCron, async (c) => {
 
   // One query: members with due/overdue incomplete tasks, grouped by member.
   // Excludes child accounts (no push token, parent monitors for them).
+  // Excludes members already notified today (idempotency).
   const result = await db.execute({
     sql: `
       SELECT
@@ -44,10 +45,11 @@ cron.get('/notifications', requireCron, async (c) => {
       WHERE m.push_token IS NOT NULL
         AND m.is_child  = 0
         AND c.id        IS NULL   -- task not yet completed today
+        AND (m.last_notified_date IS NULL OR m.last_notified_date < ?)
       GROUP BY m.id
       HAVING due_count > 0
     `,
-    args: [today, today],
+    args: [today, today, today],
   })
 
   if (!result.rows.length) {
@@ -65,6 +67,7 @@ cron.get('/notifications', requireCron, async (c) => {
   let sent = 0
   const errors: string[] = []
   const deadMemberIds: string[] = []
+  const sentMemberIds: string[] = []
 
   for (let i = 0; i < rows.length; i += 100) {
     const batch = rows.slice(i, i + 100)
@@ -92,13 +95,14 @@ cron.get('/notifications', requireCron, async (c) => {
 
       if (!res.ok) {
         errors.push(`HTTP ${res.status}: ${await res.text()}`)
-        continue
+        continue  // Don't mark these members as notified — retry is safe
       }
 
       const body = await res.json() as { data: ExpoPushTicket[] }
       body.data.forEach((ticket, idx) => {
         if (ticket.status === 'ok') {
           sent++
+          sentMemberIds.push(batch[idx].memberId)
         } else {
           errors.push(`${batch[idx].memberId}: ${ticket.message}`)
           // DeviceNotRegistered means the token is permanently dead —
@@ -113,14 +117,22 @@ cron.get('/notifications', requireCron, async (c) => {
     }
   }
 
-  // Remove dead push tokens from the database
-  if (deadMemberIds.length) {
-    await db.batch(
-      deadMemberIds.map(id => ({
-        sql:  'UPDATE members SET push_token = NULL WHERE id = ?',
-        args: [id],
-      })),
-    )
+  // Only mark members whose notification was actually delivered
+  const notifiedIds = sentMemberIds
+  const dbUpdates = [
+    // Remove dead push tokens from the database
+    ...deadMemberIds.map(id => ({
+      sql:  'UPDATE members SET push_token = NULL WHERE id = ?',
+      args: [id],
+    })),
+    // Record notification date for idempotency
+    ...notifiedIds.map(id => ({
+      sql:  'UPDATE members SET last_notified_date = ? WHERE id = ?',
+      args: [today, id],
+    })),
+  ]
+  if (dbUpdates.length) {
+    await db.batch(dbUpdates)
   }
 
   return c.json({

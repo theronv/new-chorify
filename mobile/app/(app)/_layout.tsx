@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { AppState, type AppStateStatus } from 'react-native'
 import { Tabs } from 'expo-router'
 import { Calendar, ListTodo, Gift, Settings, type LucideIcon } from 'lucide-react-native'
 import * as Notifications from 'expo-notifications'
 import * as SecureStore from 'expo-secure-store'
-import { useAuthStore, useHouseholdStore, setStoreTimezone, selectTodaysTasks, selectIsCompletedToday } from '@/lib/store'
+import { useAuthStore, useHouseholdStore, setStoreTimezone } from '@/lib/store'
 import { members as membersApi } from '@/lib/api'
 import { getTimezone } from '@/lib/timezone'
 import { initializePurchases } from '@/lib/purchases'
@@ -12,6 +13,7 @@ import {
   getNotifEnabled,
   registerForPushNotificationsAsync,
   registerBackgroundFetch,
+  updateAppBadgeCount,
   PUSH_TOKEN_CACHE_KEY,
 } from '@/lib/notifications'
 import { Colors, Shadows } from '@/constants/colors'
@@ -40,26 +42,28 @@ export default function AppLayout() {
     if (memberId) initializePurchases(memberId)
   }, [memberId])
 
-  // Keep the app badge in sync with due (uncompleted) task count
+  // Keep the app badge in sync with due (uncompleted) task count, filtered by member
   const tasks       = useHouseholdStore((s) => s.tasks)
   const completions = useHouseholdStore((s) => s.completions)
   useEffect(() => {
-    if (IS_EXPO_GO) return
-    ;(async () => {
-      const enabled = await getNotifEnabled()
-      if (!enabled) {
-        Notifications.setBadgeCountAsync(0).catch(() => {})
-        return
-      }
-      const dueTasks = selectTodaysTasks(tasks)
-      const dueCount = dueTasks.filter((t) => !selectIsCompletedToday(t.id, completions)).length
-      Notifications.setBadgeCountAsync(dueCount).catch(() => {})
-    })()
-  }, [tasks, completions])
+    updateAppBadgeCount(tasks, completions, memberId)
+  }, [tasks, completions, memberId])
 
   // Load household data on mount
   useEffect(() => {
     if (householdId) load(householdId)
+  }, [householdId])
+
+  // Refresh household data when app returns to foreground (fixes stale badge after midnight)
+  const appState = useRef<AppStateStatus>(AppState.currentState)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (appState.current.match(/inactive|background/) && nextState === 'active') {
+        if (householdId) load(householdId, true) // silent refresh
+      }
+      appState.current = nextState
+    })
+    return () => sub.remove()
   }, [householdId])
 
   // Register push token + background fetch once authenticated

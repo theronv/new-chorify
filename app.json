@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "065f08c9-a499-42f6-862d-acfadd0cb69b"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.chorify.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}
